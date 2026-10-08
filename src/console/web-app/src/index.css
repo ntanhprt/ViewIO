@@ -1,0 +1,57 @@
+body {
+  margin: 0;
+  font-family: "Inter", sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+code {
+  font-family: source-code-pro, Menlo, Monaco, Consolas, "Courier New",
+    monospace;
+}
+
+/* Chrome, Safari, Edge, Opera */
+input.removeArrows::-webkit-outer-spin-button,
+input.removeArrows::-webkit-inner-spin-button,
+.removeArrows input::-webkit-outer-spin-button,
+.removeArrows input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+/* Firefox */
+input.removeArrows[type="number"],
+.removeArrows input[type="number"] {
+  -moz-appearance: textfield;
+}
+
+
+/* MinIO_TA: menu trái ở chế độ thu nhỏ chỉ còn 40px (mặc định mds là 80px) */
+.menuBox.collapsed {
+  width: 40px !important;
+  min-width: 40px !important;
+  max-width: 40px !important;
+}
+.menuBox.collapsed .collapsedMenuHeader {
+  width: 28px !important;
+  height: 28px !important;
+  min-width: 28px !important;
+  min-height: 28px !important;
+  margin: 12px 0 !important;
+}
+.menuBox.collapsed .collapsedMenuHeader svg {
+  width: 22px !important;
+  height: 22px !important;
+}
+.menuBox.collapsed .menuItemButton {
+  height: 34px !important;
+}
+.menuBox.collapsed .menuItemButton .option,
+.menuBox.collapsed .menuItemButton .iconContainer {
+  width: 26px !important;
+  height: 26px !important;
+}
+.menuBox.collapsed .menuItemButton .iconContainer svg {
+  width: 14px !important;
+  height: 14px !important;
+}

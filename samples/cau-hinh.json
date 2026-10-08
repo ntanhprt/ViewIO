@@ -1,0 +1,1 @@
+{"name": "minio", "ports": [21030, 21031], "nested": {"a": true, "b": null}}

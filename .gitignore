@@ -1,0 +1,8 @@
+.env
+/data/
+/data-*/
+**/node_modules/
+src/console/web-app/build/
+*.log
+.DS_Store
+.upgrade-test/

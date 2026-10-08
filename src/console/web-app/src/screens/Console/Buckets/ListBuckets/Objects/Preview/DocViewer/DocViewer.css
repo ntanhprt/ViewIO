@@ -1,0 +1,521 @@
+/* Viewer tài liệu thay cho preview mặc định của MinIO Console (MinIO_TA) */
+.dv-root {
+  --dv-bg: #eef0f3;
+  --dv-panel: #ffffff;
+  --dv-text: #1f2933;
+  --dv-muted: #6b7785;
+  --dv-border: #d9dee5;
+  --dv-hover: #e8ecf1;
+  --dv-accent: #2563eb;
+  --dv-accent-text: #ffffff;
+  --dv-code-bg: #fbfcfd;
+  --dv-mark: #ffe58f;
+  --dv-mark-active: #ff9c3a;
+  --hl-keyword: #cf222e;
+  --hl-string: #0a3069;
+  --hl-number: #0550ae;
+  --hl-comment: #6e7781;
+  --hl-title: #8250df;
+  --hl-attr: #116329;
+  position: fixed;
+  inset: 0;
+  z-index: 3000;
+  display: flex;
+  flex-direction: column;
+  background: var(--dv-bg);
+  color: var(--dv-text);
+  font-family: -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial,
+    "Noto Sans", sans-serif;
+  font-size: 14px;
+}
+.dv-root.dv-dark {
+  --dv-bg: #14181d;
+  --dv-panel: #1d232a;
+  --dv-text: #e4e8ec;
+  --dv-muted: #9aa5b1;
+  --dv-border: #323a44;
+  --dv-hover: #2a323b;
+  --dv-accent: #4c8dff;
+  --dv-code-bg: #171c22;
+  --dv-mark: #6b5a12;
+  --dv-mark-active: #b4641a;
+  --hl-keyword: #ff7b72;
+  --hl-string: #a5d6ff;
+  --hl-number: #79c0ff;
+  --hl-comment: #8b949e;
+  --hl-title: #d2a8ff;
+  --hl-attr: #7ee787;
+}
+.dv-root * {
+  box-sizing: border-box;
+}
+.dv-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  height: 52px;
+  padding: 0 14px;
+  background: var(--dv-panel);
+  border-bottom: 1px solid var(--dv-border);
+  flex: 0 0 auto;
+}
+.dv-title {
+  min-width: 0;
+  flex: 1 1 auto;
+}
+.dv-title b {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 15px;
+  font-weight: 600;
+}
+.dv-title span {
+  display: block;
+  font-size: 12px;
+  color: var(--dv-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.dv-badge {
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.4px;
+  text-transform: uppercase;
+  background: var(--dv-hover);
+  color: var(--dv-muted);
+}
+.dv-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-width: 32px;
+  height: 32px;
+  padding: 0 10px;
+  border: 1px solid var(--dv-border);
+  border-radius: 6px;
+  background: var(--dv-panel);
+  color: var(--dv-text);
+  font: inherit;
+  cursor: pointer;
+}
+.dv-btn:hover:not(:disabled) {
+  background: var(--dv-hover);
+}
+.dv-btn:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+.dv-btn.dv-active {
+  background: var(--dv-accent);
+  border-color: var(--dv-accent);
+  color: var(--dv-accent-text);
+}
+.dv-toolbar {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 6px 14px;
+  background: var(--dv-panel);
+  border-bottom: 1px solid var(--dv-border);
+  flex: 0 0 auto;
+}
+.dv-toolbar .dv-sep {
+  width: 1px;
+  height: 20px;
+  background: var(--dv-border);
+  margin: 0 4px;
+}
+.dv-toolbar .dv-info {
+  color: var(--dv-muted);
+  min-width: 48px;
+  text-align: center;
+}
+.dv-input {
+  height: 32px;
+  padding: 0 10px;
+  border: 1px solid var(--dv-border);
+  border-radius: 6px;
+  background: var(--dv-bg);
+  color: var(--dv-text);
+  font: inherit;
+}
+.dv-input.dv-page {
+  width: 56px;
+  text-align: center;
+}
+.dv-body {
+  position: relative;
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+}
+.dv-scroll {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: auto;
+}
+.dv-center {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  height: 100%;
+  padding: 24px;
+  text-align: center;
+  color: var(--dv-muted);
+}
+.dv-center h3 {
+  margin: 0;
+  color: var(--dv-text);
+}
+.dv-spinner {
+  width: 34px;
+  height: 34px;
+  border: 3px solid var(--dv-border);
+  border-top-color: var(--dv-accent);
+  border-radius: 50%;
+  animation: dv-spin 0.8s linear infinite;
+}
+@keyframes dv-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+.dv-notice {
+  padding: 8px 14px;
+  background: var(--dv-mark);
+  color: var(--dv-text);
+  font-size: 13px;
+}
+
+/* PDF */
+.dv-thumbs {
+  flex: 0 0 150px;
+  overflow-y: auto;
+  padding: 10px;
+  background: var(--dv-panel);
+  border-right: 1px solid var(--dv-border);
+}
+.dv-thumb {
+  display: block;
+  width: 100%;
+  margin-bottom: 10px;
+  padding: 4px;
+  border: 2px solid transparent;
+  border-radius: 6px;
+  background: none;
+  color: var(--dv-muted);
+  font-size: 12px;
+  text-align: center;
+  cursor: pointer;
+}
+.dv-thumb.dv-active {
+  border-color: var(--dv-accent);
+}
+.dv-thumb canvas {
+  max-width: 100%;
+  height: auto !important;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.25);
+}
+.dv-pages {
+  padding: 18px 0 40px;
+}
+.dv-pagebox {
+  margin: 0 auto 14px;
+  background: #fff;
+  box-shadow: 0 1px 6px rgba(0, 0, 0, 0.25);
+  position: relative;
+}
+.dv-pagebox .react-pdf__Page {
+  background: #fff !important;
+}
+.dv-pagebox mark {
+  background: var(--dv-mark);
+  color: inherit;
+  border-radius: 2px;
+}
+.dv-pagebox .dv-cur mark,
+.dv-text mark.dv-cur {
+  background: var(--dv-mark-active);
+}
+
+/* Image */
+.dv-stage {
+  position: relative;
+  flex: 1 1 auto;
+  overflow: hidden;
+  cursor: grab;
+  background-image: linear-gradient(45deg, rgba(128, 128, 128, 0.12) 25%, transparent 25%),
+    linear-gradient(-45deg, rgba(128, 128, 128, 0.12) 25%, transparent 25%),
+    linear-gradient(45deg, transparent 75%, rgba(128, 128, 128, 0.12) 75%),
+    linear-gradient(-45deg, transparent 75%, rgba(128, 128, 128, 0.12) 75%);
+  background-size: 20px 20px;
+  background-position: 0 0, 0 10px, 10px -10px, -10px 0;
+}
+.dv-stage.dv-drag {
+  cursor: grabbing;
+}
+.dv-stage img {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  max-width: none;
+  user-select: none;
+  -webkit-user-drag: none;
+}
+
+/* Text / code */
+.dv-text {
+  margin: 0;
+  min-width: 100%;
+  width: max-content;
+  padding: 10px 0 40px;
+  background: var(--dv-code-bg);
+  font-family: "JetBrains Mono", "Fira Code", Consolas, "DejaVu Sans Mono", monospace;
+  font-size: 13px;
+  line-height: 1.55;
+}
+.dv-line {
+  display: flex;
+}
+.dv-line:hover {
+  background: var(--dv-hover);
+}
+.dv-ln {
+  flex: 0 0 auto;
+  width: 56px;
+  padding-right: 14px;
+  text-align: right;
+  color: var(--dv-muted);
+  user-select: none;
+}
+.dv-code {
+  white-space: pre;
+  padding-right: 24px;
+}
+.dv-text.dv-wrap .dv-code {
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+.dv-text mark {
+  background: var(--dv-mark);
+  color: inherit;
+}
+.hljs-keyword,
+.hljs-selector-tag,
+.hljs-built_in,
+.hljs-literal {
+  color: var(--hl-keyword);
+}
+.hljs-string,
+.hljs-regexp,
+.hljs-template-variable {
+  color: var(--hl-string);
+}
+.hljs-number,
+.hljs-symbol,
+.hljs-bullet {
+  color: var(--hl-number);
+}
+.hljs-comment,
+.hljs-quote {
+  color: var(--hl-comment);
+  font-style: italic;
+}
+.hljs-title,
+.hljs-section,
+.hljs-type,
+.hljs-class {
+  color: var(--hl-title);
+}
+.hljs-attr,
+.hljs-attribute,
+.hljs-name,
+.hljs-variable {
+  color: var(--hl-attr);
+}
+
+/* Markdown */
+.dv-md {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 28px 24px 60px;
+  line-height: 1.7;
+  font-size: 15px;
+}
+.dv-md h1,
+.dv-md h2 {
+  padding-bottom: 6px;
+  border-bottom: 1px solid var(--dv-border);
+}
+.dv-md pre {
+  padding: 14px;
+  overflow: auto;
+  border-radius: 8px;
+  background: var(--dv-code-bg);
+  border: 1px solid var(--dv-border);
+}
+.dv-md code {
+  font-family: Consolas, "DejaVu Sans Mono", monospace;
+  font-size: 0.9em;
+}
+.dv-md :not(pre) > code {
+  padding: 2px 6px;
+  border-radius: 4px;
+  background: var(--dv-hover);
+}
+.dv-md table {
+  border-collapse: collapse;
+  display: block;
+  overflow: auto;
+}
+.dv-md th,
+.dv-md td {
+  padding: 6px 12px;
+  border: 1px solid var(--dv-border);
+}
+.dv-md blockquote {
+  margin-left: 0;
+  padding-left: 14px;
+  border-left: 4px solid var(--dv-border);
+  color: var(--dv-muted);
+}
+.dv-md img {
+  max-width: 100%;
+}
+
+/* Bảng (CSV / Excel) */
+.dv-table-wrap {
+  flex: 1 1 auto;
+  overflow: auto;
+  background: var(--dv-panel);
+}
+.dv-table {
+  border-collapse: separate;
+  border-spacing: 0;
+  font-size: 13px;
+}
+.dv-table th,
+.dv-table td {
+  max-width: 420px;
+  padding: 5px 12px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  border-right: 1px solid var(--dv-border);
+  border-bottom: 1px solid var(--dv-border);
+}
+.dv-table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  background: var(--dv-hover);
+  text-align: left;
+  font-weight: 600;
+}
+.dv-table td.dv-rn,
+.dv-table th.dv-rn {
+  position: sticky;
+  left: 0;
+  z-index: 1;
+  min-width: 52px;
+  text-align: right;
+  background: var(--dv-hover);
+  color: var(--dv-muted);
+}
+.dv-table thead th.dv-rn {
+  z-index: 3;
+}
+.dv-table td.dv-num {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+.dv-table tbody tr:hover td {
+  background: var(--dv-hover);
+}
+.dv-tabs {
+  display: flex;
+  gap: 2px;
+  padding: 0 10px;
+  overflow-x: auto;
+  background: var(--dv-panel);
+  border-top: 1px solid var(--dv-border);
+  flex: 0 0 auto;
+}
+.dv-tab {
+  padding: 8px 16px;
+  border: 0;
+  border-top: 2px solid transparent;
+  background: none;
+  color: var(--dv-muted);
+  font: inherit;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.dv-tab.dv-active {
+  border-top-color: var(--dv-accent);
+  color: var(--dv-text);
+  font-weight: 600;
+}
+
+/* docx */
+.dv-docx {
+  padding: 18px 0 40px;
+}
+.dv-docx .docx-wrapper {
+  background: transparent !important;
+  padding: 0 !important;
+}
+.dv-docx .docx-wrapper > section.docx {
+  margin-bottom: 14px !important;
+  box-shadow: 0 1px 6px rgba(0, 0, 0, 0.25) !important;
+}
+
+/* media */
+.dv-media {
+  flex: 1 1 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  background: #000;
+}
+.dv-media.dv-audio {
+  background: var(--dv-bg);
+}
+.dv-media video {
+  max-width: 100%;
+  max-height: 100%;
+}
+.dv-media audio {
+  width: min(640px, 100%);
+}
+@media (max-width: 700px) {
+  .dv-thumbs {
+    display: none;
+  }
+  .dv-header .dv-badge {
+    display: none;
+  }
+}
+
+/* layout: mọi viewer là con trực tiếp của .dv-root và chiếm phần còn lại */
+.dv-root > :not(.dv-header) {
+  flex: 1 1 auto;
+  min-height: 0;
+  min-width: 0;
+}
+.dv-scroll {
+  min-height: 0;
+}
+.dv-body > div {
+  min-height: 0;
+}

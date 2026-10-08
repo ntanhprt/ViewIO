@@ -1,0 +1,62 @@
+name: viewio
+
+services:
+  minio:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: viewio/minio:2025-04-22
+    container_name: viewio-minio
+    command: server /data --console-address ":9001"
+    user: "${VIEWIO_UID:-1000}:${VIEWIO_GID:-1000}"
+    restart: unless-stopped
+    environment:
+      MINIO_ROOT_USER: ${VIEWIO_ROOT_USER:?Thiếu VIEWIO_ROOT_USER trong .env (chạy ./install.sh)}
+      MINIO_ROOT_PASSWORD: ${VIEWIO_ROOT_PASSWORD:?Thiếu VIEWIO_ROOT_PASSWORD trong .env (chạy ./install.sh)}
+      MINIO_BROWSER_REDIRECT_URL: ${VIEWIO_REDIRECT_URL:-}
+      DOCVIEW_CONVERTER_URL: ${VIEWIO_CONVERTER_URL:-http://converter:8080}
+      HOME: /tmp          # user thường không có thư mục home; MinIO cần nơi ghi cấu hình
+      TZ: ${TZ:-Asia/Ho_Chi_Minh}
+    ports:
+      - "${VIEWIO_BIND:-0.0.0.0}:${VIEWIO_API_PORT:-9000}:9000"
+      - "${VIEWIO_BIND:-0.0.0.0}:${VIEWIO_CONSOLE_PORT:-9001}:9001"
+    volumes:
+      - ${VIEWIO_DATA_DIR:-./data}:/data
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:9000/minio/health/ready"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+    ulimits:
+      nofile:
+        soft: 65536
+        hard: 65536
+    logging:
+      driver: json-file
+      options:
+        max-size: "20m"
+        max-file: "5"
+
+  # Chuyển docx/pptx/xls/odt... sang PDF (LibreOffice) để xem trước. Không mở cổng ra ngoài:
+  # chỉ ViewIO gọi được, qua đường /docview/convert (yêu cầu đã đăng nhập).
+  converter:
+    build:
+      context: ./converter
+    image: viewio/converter:1
+    container_name: viewio-converter
+    restart: unless-stopped
+    user: "1000:1000"
+    environment:
+      CONCURRENCY: "2"
+      CACHE_DAYS: "7"
+    volumes:
+      - converter-cache:/cache
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+volumes:
+  converter-cache:

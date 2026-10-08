@@ -34,6 +34,25 @@ const GridIcon = () => (
   </svg>
 );
 
+const CompactIcon = () => (
+  <svg viewBox="0 0 16 16" width="16" height="16" fill="currentColor">
+    <rect x="1" y="1" width="14" height="2" rx="1" opacity="0.35" />
+    <rect x="1" y="5" width="14" height="10" rx="1.5" />
+  </svg>
+);
+const FullIcon = () => (
+  <svg
+    viewBox="0 0 16 16"
+    width="16"
+    height="16"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="1.8"
+  >
+    <path d="M1.5 5.5v-4h4M10.5 1.5h4v4M14.5 10.5v4h-4M5.5 14.5h-4v-4" />
+  </svg>
+);
+
 const SIZE_LABEL: Record<ThumbSize, string> = { s: "Nhỏ", m: "Vừa", l: "Lớn" };
 
 // Nút chuyển chế độ xem: danh sách / thumbnail (+ cỡ thẻ và sắp xếp khi ở chế độ thumbnail)
@@ -55,6 +74,26 @@ const ViewModeToolbar = () => {
           onClick={() => setViewState({ mode: "thumb" })}
         >
           <GridIcon />
+        </button>
+      </div>
+      <div className="vm-group">
+        <button
+          className={`vm-btn ${v.focus === 1 ? "vm-on" : ""}`}
+          title={
+            v.focus === 1
+              ? "Hiện lại thanh tiêu đề và khung bucket"
+              : "Chế độ gọn: ẩn thanh tiêu đề và khung thông tin bucket"
+          }
+          onClick={() => setViewState({ focus: v.focus === 1 ? 0 : 1 })}
+        >
+          <CompactIcon />
+        </button>
+        <button
+          className="vm-btn"
+          title="Toàn màn hình: ẩn mọi thanh, nội dung chiếm gần hết màn hình (Esc để thoát)"
+          onClick={() => setViewState({ focus: 2 })}
+        >
+          <FullIcon />
         </button>
       </div>
       {v.mode === "thumb" ? (

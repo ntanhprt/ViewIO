@@ -290,6 +290,13 @@ Sửa file rồi chạy `./viewio.sh restart` để áp dụng.
 
 > Muốn **tắt hẳn** xem Office/PowerPoint (tiết kiệm ~1 GB và 1 container; khi đó chế độ thumbnail chỉ hiện icon theo loại file): đặt `VIEWIO_CONVERTER_URL=off`, xóa khối `converter:` trong `docker-compose.yml`, rồi `./viewio.sh restart`. Word `.docx`, Excel `.xlsx`, PDF… vẫn xem được vì chúng chạy ngay trên trình duyệt.
 
+### Chế độ tập trung (ẩn các thanh phía trên)
+
+Ở hàng đường dẫn của Object Browser, cạnh nút chuyển danh sách/thumbnail có hai nút:
+- **Gọn**: ẩn thanh tiêu đề (tìm kiếm, cài đặt…) và khung thông tin bucket (tên, dung lượng, Rewind/Refresh/Upload) — nội dung chiếm khoảng 89% chiều cao màn hình (mặc định ~63%). Bấm lại để hiện.
+- **Toàn màn hình**: ẩn thêm hàng đường dẫn và menu trái — nội dung chiếm khoảng 96–98%. Thoát bằng chấm **✕** nhỏ ở góc trên phải, hoặc phím **Esc** (khi không mở viewer). Trong chế độ này vẫn điều hướng được bằng cây thư mục (dải mũi tên bên trái), double-click file để xem, kéo-thả để tải lên.
+Lựa chọn được nhớ trong trình duyệt và chỉ áp dụng cho Object Browser; các trang khác của Console không bị ảnh hưởng.
+
 ### Xem file HTML như trang web thật
 
 - Mở file `.html`/`.htm` bằng double-click: trang được dựng trong khung riêng tại địa chỉ `…/docview/raw/<bucket>/<đường dẫn>`. Vì vậy `<img src="img/a.png">`, `<link href="css/style.css">`, `<a href="trang-khac.html">` tự hiểu theo **thư mục chứa file** (thanh công cụ hiện *Base URL* của thư mục đó); đường dẫn gốc như `/img/a.png` được hiểu là gốc của **bucket**. File trong thư mục `a/b/` có `index.html` thì mở `a/b/` cũng ra trang đó.

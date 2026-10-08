@@ -14,7 +14,7 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-import React, { useRef } from "react";
+import React, { useLayoutEffect, useRef, useState } from "react";
 import { listModeColumns, rewindModeColumns } from "./ListObjectsHelpers";
 import { useSelector } from "react-redux";
 import { AppState, useAppDispatch } from "../../../../../../store";
@@ -56,6 +56,29 @@ const ListObjectsTable = () => {
   const view = useViewState();
   const sortDirection = view.sortDir;
   const currentSortField = view.sortBy;
+
+  // Khi ẩn các thanh phía trên (view.focus > 0) đo chiều cao còn lại thật thay vì dùng công thức cố định
+  const tableWrapRef = useRef<HTMLDivElement | null>(null);
+  const [focusHeight, setFocusHeight] = useState<string | null>(null);
+  useLayoutEffect(() => {
+    if (view.focus === 0) {
+      setFocusHeight(null);
+      return;
+    }
+    const measure = () => {
+      const el = tableWrapRef.current;
+      if (el) {
+        const top = el.getBoundingClientRect().top;
+        setFocusHeight(`${Math.max(260, window.innerHeight - top - 14)}px`);
+      }
+    };
+    const raf = requestAnimationFrame(measure);
+    window.addEventListener("resize", measure);
+    return () => {
+      cancelAnimationFrame(raf);
+      window.removeEventListener("resize", measure);
+    };
+  }, [view.focus, view.mode]);
 
   const bucketName = params.bucketName || "";
 
@@ -259,6 +282,9 @@ const ListObjectsTable = () => {
   if (obOnly) {
     customPaperHeight = "calc(100vh - 315px)";
   }
+  if (focusHeight) {
+    customPaperHeight = focusHeight;
+  }
 
   if (view.mode === "thumb" && !rewindEnabled) {
     return (
@@ -268,6 +294,7 @@ const ListObjectsTable = () => {
         selected={selectedObjects}
         activeName={selectedInternalPaths}
         size={view.size}
+        remeasureKey={view.focus}
         loading={requestInProgress}
         emptyMessage={errorMessage}
         onToggle={toggleItem}
@@ -279,6 +306,7 @@ const ListObjectsTable = () => {
 
   return (
     <div
+      ref={tableWrapRef}
       onClickCapture={rememberFirstClick}
       onDoubleClick={previewOnDoubleClick}
     >

@@ -232,7 +232,7 @@ const BrowserBreadcrumbs = ({
 
   return (
     <Fragment>
-      <BreadcrumbsMain>
+      <BreadcrumbsMain className="vio-crumbs">
         {createFolderOpen && (
           <CreatePathModal
             modalOpen={createFolderOpen}

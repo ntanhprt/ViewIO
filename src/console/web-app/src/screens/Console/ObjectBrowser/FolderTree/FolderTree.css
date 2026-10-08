@@ -160,3 +160,51 @@
 .ft-resize:hover {
   background: rgba(37, 99, 235, 0.45);
 }
+
+/* ===== Chế độ tập trung (ViewIO): ẩn các thanh phía trên để nhường chỗ cho nội dung =====
+   1 = gọn: ẩn thanh tiêu đề (tìm kiếm, cài đặt...) và khung thông tin bucket
+   2 = toàn màn hình: ẩn thêm hàng đường dẫn/nút chế độ xem và menu trái (thoát bằng nút góc phải hoặc Esc) */
+body.vio-focus-1 .page-header,
+body.vio-focus-2 .page-header,
+body.vio-focus-1 .screenTitle-container,
+body.vio-focus-2 .screenTitle-container {
+  display: none !important;
+}
+body.vio-focus-2 .vio-crumbs,
+body.vio-focus-2 div:has(> .vio-crumbs),
+body.vio-focus-2 .menuBox {
+  display: none !important;
+}
+/* thu nhỏ khoảng đệm quanh nội dung (mặc định 32px mỗi bên) */
+body.vio-focus-1 .ft-main > div:last-child {
+  padding: 8px 12px !important;
+}
+body.vio-focus-1 .ft-main > div:last-child > div,
+body.vio-focus-2 .ft-main > div:last-child > div {
+  padding: 0 !important;
+}
+body.vio-focus-2 .ft-main > div:last-child {
+  padding: 4px 6px !important;
+}
+.vio-exit-focus {
+  position: fixed;
+  top: 4px;
+  right: 6px;
+  z-index: 2500;
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  border: 1px solid rgba(128, 128, 128, 0.5);
+  border-radius: 50%;
+  background: rgba(30, 34, 44, 0.78);
+  color: #e4e8ec;
+  font: inherit;
+  font-size: 11px;
+  line-height: 1;
+  cursor: pointer;
+  opacity: 0.3;
+  transition: opacity 0.15s;
+}
+.vio-exit-focus:hover {
+  opacity: 1;
+}

@@ -28,6 +28,8 @@ export interface ViewState {
   size: ThumbSize;
   sortBy: SortField;
   sortDir: "ASC" | "DESC";
+  // 0 = bình thường, 1 = gọn (ẩn tiêu đề + khung bucket), 2 = toàn màn hình (ẩn cả hàng đường dẫn + menu trái)
+  focus: 0 | 1 | 2;
 }
 
 const LS_KEY = "docview.listview";
@@ -36,6 +38,7 @@ const DEFAULT: ViewState = {
   size: "m",
   sortBy: "name",
   sortDir: "ASC",
+  focus: 0,
 };
 
 const read = (): ViewState => {
@@ -50,6 +53,7 @@ const read = (): ViewState => {
           ? p.sortBy
           : "name",
         sortDir: p.sortDir === "DESC" ? "DESC" : "ASC",
+        focus: p.focus === 1 ? 1 : p.focus === 2 ? 2 : 0,
       };
     }
   } catch (e) {

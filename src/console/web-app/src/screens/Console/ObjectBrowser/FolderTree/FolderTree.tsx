@@ -23,6 +23,7 @@ import React, {
 } from "react";
 import { useNavigate } from "react-router-dom";
 import { api } from "api";
+import { setViewState, useViewState } from "../viewMode";
 import "./FolderTree.css";
 
 const LS_OPEN = "docview.tree.open";
@@ -87,6 +88,38 @@ export const FolderTreeLayout = ({
   children,
 }: IFolderTreeLayoutProps) => {
   const navigate = useNavigate();
+  const view = useViewState();
+
+  // Chế độ tập trung: đặt class lên <body> (CSS ẩn các thanh); gỡ khi rời Object Browser
+  useEffect(() => {
+    const cls = ["vio-focus-1", "vio-focus-2"];
+    document.body.classList.remove(...cls);
+    if (view.focus > 0) {
+      document.body.classList.add(`vio-focus-${view.focus}`);
+    }
+    return () => document.body.classList.remove(...cls);
+  }, [view.focus]);
+
+  // Esc thoát toàn màn hình (không khi đang mở viewer hay đang gõ)
+  useEffect(() => {
+    if (view.focus !== 2) {
+      return;
+    }
+    const onKey = (e: KeyboardEvent) => {
+      const el = e.target as HTMLElement | null;
+      if (
+        e.key === "Escape" &&
+        !document.querySelector(".dv-root") &&
+        el?.tagName !== "INPUT" &&
+        el?.tagName !== "TEXTAREA"
+      ) {
+        setViewState({ focus: 0 });
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [view.focus]);
+
   const [open, setOpen] = useState<boolean>(lsGet(LS_OPEN) === "1");
   const [width, setWidth] = useState<number>(() => {
     const n = parseInt(lsGet(LS_WIDTH) || "", 10);
@@ -300,6 +333,15 @@ export const FolderTreeLayout = ({
 
   return (
     <div className="ft-layout">
+      {view.focus === 2 ? (
+        <button
+          className="vio-exit-focus"
+          title="Thoát toàn màn hình (Esc)"
+          onClick={() => setViewState({ focus: 0 })}
+        >
+          ✕
+        </button>
+      ) : null}
       <div className="ft-side">
         <button
           className="ft-rail"
@@ -331,7 +373,9 @@ export const FolderTreeLayout = ({
               {buckets === null ? (
                 <div className="ft-note">Đang tải...</div>
               ) : null}
-              {bucketsError ? <div className="ft-note">{bucketsError}</div> : null}
+              {bucketsError ? (
+                <div className="ft-note">{bucketsError}</div>
+              ) : null}
               {(buckets || []).map((b) => {
                 const bk = keyOf(b, "");
                 const isOpen = expanded.has(bk);

@@ -18,6 +18,7 @@ xem trước PDF/Word/Excel/PowerPoint/Markdown/code/ảnh/video ngay trong trì
 | Ảnh | xem tĩnh | zoom, kéo, xoay, lật |
 | Mở xem | chọn file → bấm Preview | **double-click file** là xem |
 | Chế độ xem | chỉ danh sách | **danh sách hoặc thumbnail** (ảnh, trang đầu PDF/Word/Excel/PowerPoint, khung hình video, nội dung đầu file text/CSV/code; loại khác dùng icon). Có cache, 3 cỡ thẻ, sắp xếp |
+| Không gian nội dung | luôn kèm tiêu đề + khung bucket (~63% chiều cao) | nút **Gọn** (~89%) và **Toàn màn hình** (~96–98%); thoát bằng chấm nhỏ ở góc hoặc phím Esc; nhớ lựa chọn |
 | Cột danh sách | Name · Last Modified · Size | Name · **Size · Last Modified**; dòng kẻ giữa các hàng nhạt, đỡ vướng mắt |
 | Cây thư mục | không | thanh bên trái, bung/thu từng nhánh, kéo đổi độ rộng (mặc định ẩn) |
 | Menu trái (thu nhỏ) | 80px | 40px |

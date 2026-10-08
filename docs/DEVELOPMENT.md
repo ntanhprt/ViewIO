@@ -23,6 +23,7 @@ samples/                     file mẫu để thử viewer
 | Menu trái thu nhỏ 80px → 40px; dòng kẻ hàng nhạt (`.rowLine`) | cuối `src/console/web-app/src/index.css` |
 | Chế độ thumbnail: lưới ảo, chọn/mở/double-click | `.../Objects/ListObjects/ThumbnailGrid.tsx`, chọn bảng/lưới trong `ListObjectsTable.tsx` |
 | Nút chuyển danh sách/thumbnail, cỡ thẻ, sắp xếp (nhớ trong localStorage `docview.listview`) | `.../ObjectBrowser/ViewModeToolbar.tsx`, `viewMode.ts`; gắn trong `BrowserBreadcrumbs.tsx` |
+| Chế độ tập trung (ẩn thanh tiêu đề/khung bucket/đường dẫn/menu trái): class `vio-focus-1/2` trên `<body>`, CSS ở `FolderTree.css`, trạng thái `focus` trong `viewMode.ts`, nút trong `ViewModeToolbar.tsx`, đo lại chiều cao trong `ListObjectsTable.tsx`/`ThumbnailGrid.tsx` | `.../ObjectBrowser/FolderTree/*`, `viewMode.ts`, `ViewModeToolbar.tsx` |
 | Cột Size đứng trước Last Modified | `.../Objects/ListObjects/ListObjectsHelpers.tsx` |
 | API thumbnail `/docview/thumb` (kiểm quyền bằng StatObject/GetObject của người dùng, khóa cache theo etag) | `src/console/api/docview_thumb.go` |
 | Xem HTML như web thật (`/docview/raw/<bucket>/<key>`, CSP sandbox không script, tài nguyên gốc-tương-đối theo Referer) | `src/console/api/docview_raw.go` (+ route trong `docview_proxy.go`, `configure_console.go`), viewer `.../Preview/DocViewer/HtmlViewer.tsx` |

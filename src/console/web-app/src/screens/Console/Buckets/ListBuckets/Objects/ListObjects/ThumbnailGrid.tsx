@@ -268,6 +268,7 @@ interface IThumbnailGridProps {
   selected: string[];
   activeName: string | null;
   size: ThumbSize;
+  remeasureKey?: number;
   loading: boolean;
   emptyMessage?: ReactNode;
   onToggle: (name: string, checked: boolean) => void;
@@ -281,6 +282,7 @@ const ThumbnailGrid = ({
   selected,
   activeName,
   size,
+  remeasureKey,
   loading,
   emptyMessage,
   onToggle,
@@ -307,18 +309,20 @@ const ThumbnailGrid = ({
       const top = el.getBoundingClientRect().top;
       setBox({
         w: el.clientWidth,
-        h: Math.max(260, window.innerHeight - top - 34),
+        h: Math.max(260, window.innerHeight - top - (remeasureKey ? 14 : 34)),
       });
     };
     measure();
+    const raf = requestAnimationFrame(measure); // đo lại sau khi layout ổn định (ẩn/hiện thanh)
     const ro = new ResizeObserver(measure);
     ro.observe(el);
     window.addEventListener("resize", measure);
     return () => {
+      cancelAnimationFrame(raf);
       ro.disconnect();
       window.removeEventListener("resize", measure);
     };
-  }, []);
+  }, [remeasureKey]);
 
   const cardW = CARD_W[size];
   const cardH = Math.round((cardW * 3) / 4) + LABEL_H;

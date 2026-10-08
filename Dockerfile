@@ -2,6 +2,12 @@
 # ViewIO = MinIO (RELEASE.2025-04-22T22-12-26Z) + Console có viewer tài liệu & cây thư mục.
 # Build 1 lần, không cần cài Node/Go trên máy: Docker làm hết (cần Internet khi build).
 
+# Nguồn lấy lệnh `mc` (MinIO Client) để đưa vào image cuối, giữ tương thích với các script
+# quen dùng `docker exec <container> mc ...` của image MinIO chính thức. Có thể đổi bằng
+# --build-arg MC_IMAGE=... nếu image này không còn trên Docker Hub.
+ARG MC_IMAGE=minio/minio:RELEASE.2025-04-22T22-12-26Z
+FROM ${MC_IMAGE} AS mcsrc
+
 # ---------- Giai đoạn 1: build giao diện Console (React) ----------
 FROM node:22-bookworm AS ui
 ENV CI=false \
@@ -41,6 +47,12 @@ RUN --mount=type=cache,target=/go/pkg/mod --mount=type=cache,target=/root/.cache
 FROM alpine:3.20
 RUN apk add --no-cache ca-certificates curl tzdata
 COPY --from=gobuild /out/minio /usr/bin/minio
+COPY --from=mcsrc /usr/bin/mc /usr/bin/mc
+LABEL org.opencontainers.image.title="ViewIO (MinIO + document viewer UI)" \
+      org.opencontainers.image.description="MinIO RELEASE.2025-04-22T22-12-26Z with a Console that previews PDF/Word/Excel/PowerPoint/Markdown/code and a folder tree" \
+      org.opencontainers.image.source="https://github.com/ntanhprt/ViewIO" \
+      org.opencontainers.image.licenses="AGPL-3.0-or-later" \
+      org.opencontainers.image.version="1.0.0"
 EXPOSE 9000 9001
 ENTRYPOINT ["/usr/bin/minio"]
 CMD ["server", "/data", "--console-address", ":9001"]

@@ -50,3 +50,14 @@ Ghi chú build:
 
 Không đơn giản: upstream Console không còn, nên nâng MinIO lên bản mới nghĩa là phải **port** các sửa đổi ở bảng trên sang source Console/MinIO của bản đó
 (nếu lấy được source). Hiện ViewIO cố định ở `RELEASE.2025-04-22T22-12-26Z`.
+
+## Phát hành image lên Docker Hub
+
+```bash
+./install.sh --build-only --build                       # build ntanhprt/viewio:2025-04-22 và ntanhprt/viewio-converter:1
+docker tag ntanhprt/viewio:2025-04-22 ntanhprt/viewio:1.0.0 && docker tag ntanhprt/viewio:2025-04-22 ntanhprt/viewio:latest
+docker tag ntanhprt/viewio-converter:1 ntanhprt/viewio-converter:1.0.0 && docker tag ntanhprt/viewio-converter:1 ntanhprt/viewio-converter:latest
+docker push --all-tags ntanhprt/viewio && docker push --all-tags ntanhprt/viewio-converter
+```
+Image chỉ linux/amd64. Nhãn OCI `org.opencontainers.image.source` trỏ về repo này (AGPL yêu cầu chỉ ra nơi lấy source).
+`mc` trong image được lấy từ image `minio/minio` chính thức (build-arg `MC_IMAGE`).

@@ -24,7 +24,7 @@ Phần lõi MinIO giữ nguyên (`RELEASE.2025-04-22T22-12-26Z`), dữ liệu v�
 
 ## Cài nhanh
 
-Yêu cầu: Linux x86_64, Docker Engine + Docker Compose v2, ~8GB ổ trống, RAM ≥ 6GB (khi build), có Internet (khi build).
+Yêu cầu: Linux x86_64, Docker Engine + Docker Compose v2, ~2GB ổ trống cho image, có Internet khi cài (tải image từ Docker Hub: [`ntanhprt/viewio`](https://hub.docker.com/r/ntanhprt/viewio), [`ntanhprt/viewio-converter`](https://hub.docker.com/r/ntanhprt/viewio-converter)).
 
 ```bash
 git clone https://github.com/ntanhprt/ViewIO.git
@@ -32,13 +32,13 @@ cd ViewIO
 ./install.sh
 ```
 
-Lần đầu mất ~10–15 phút (build giao diện + MinIO bên trong Docker, không cần cài Node/Go). Kết thúc script in địa chỉ,
+Script tải image dựng sẵn (~1–2 phút); nếu không tải được thì tự build từ source (~10–15 phút, cần RAM ≥ 6GB, không cần cài Node/Go). Kết thúc script in địa chỉ,
 tài khoản và mật khẩu ngẫu nhiên (lưu trong `.env`). Mặc định: giao diện `http://localhost:9001`, S3 API `http://localhost:9000`.
 
 ### Đã có MinIO đang chạy, có dữ liệu? Chỉ nâng cấp giao diện
 
-Không cần cài mới, không đổi cổng/dữ liệu/tài khoản: build image bằng `./install.sh --build-only`, rồi đổi `image:` của MinIO cũ sang
-`viewio/minio:2025-04-22` (hoặc thay binary nếu chạy systemd). Có rollback một dòng. Chi tiết từng bước:
+Không cần cài mới, không đổi cổng/dữ liệu/tài khoản: `docker pull ntanhprt/viewio:2025-04-22`, rồi đổi `image:` của MinIO cũ sang
+`ntanhprt/viewio:2025-04-22` (hoặc thay binary nếu chạy systemd). Có rollback một dòng. Chi tiết từng bước:
 **[docs/INSTALL.md mục 3b](docs/INSTALL.md#3b-đã-có-minio-đang-chạy--chỉ-nâng-cấp-giao-diện-giữ-nguyên-mọi-thứ)**.
 
 **Hướng dẫn cài đặt chi tiết: [docs/INSTALL.md](docs/INSTALL.md)** · Dành cho người phát triển: [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md)
@@ -49,7 +49,7 @@ Không cần cài mới, không đổi cổng/dữ liệu/tài khoản: build im
 ./viewio.sh status      # trạng thái
 ./viewio.sh logs -f     # xem log
 ./viewio.sh restart     # khởi động lại
-./viewio.sh update      # lấy bản mới + build + chạy lại (không mất dữ liệu)
+./viewio.sh update      # lấy bản mới + tải image + chạy lại (không mất dữ liệu)
 ./viewio.sh help        # tất cả lệnh
 ```
 

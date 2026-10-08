@@ -21,15 +21,16 @@ Cách dùng: ./install.sh [tùy chọn]
   --bind ADDR           địa chỉ lắng nghe (mặc định 0.0.0.0; 127.0.0.1 = chỉ máy này)
   --data-dir PATH       thư mục dữ liệu (mặc định ./data)
   --no-start            tạo .env + build image, không khởi động
-  --build-only          CHỈ build 2 image (viewio/minio, viewio/converter): không tạo .env, không đụng cổng/dữ liệu
-                        (dùng để nâng cấp MinIO đã có sẵn — xem docs/INSTALL.md mục 4)
+  --build-only          CHỈ chuẩn bị 2 image (ntanhprt/viewio, ntanhprt/viewio-converter): không tạo .env,
+                        không đụng cổng/dữ liệu (dùng để nâng cấp MinIO đã có — xem docs/INSTALL.md mục 3b)
+  --build               bắt buộc build từ source thay vì tải image từ Docker Hub
   -y, --yes             không hỏi gì cả
   -h, --help            xem hướng dẫn này
 Các tùy chọn chỉ có tác dụng khi tạo .env lần đầu; muốn đổi sau này hãy sửa .env rồi ./viewio.sh restart.
 USAGE
 }
 
-OPT_USER=""; OPT_PASS=""; OPT_API=""; OPT_CON=""; OPT_BIND=""; OPT_DATA=""; NO_START=0; BUILD_ONLY=0; YES=0
+OPT_USER=""; OPT_PASS=""; OPT_API=""; OPT_CON=""; OPT_BIND=""; OPT_DATA=""; NO_START=0; BUILD_ONLY=0; FORCE_BUILD=0; YES=0
 while [ $# -gt 0 ]; do
   case "$1" in
     --user) OPT_USER="${2:?}"; shift 2;;
@@ -40,6 +41,7 @@ while [ $# -gt 0 ]; do
     --data-dir) OPT_DATA="${2:?}"; shift 2;;
     --no-start) NO_START=1; shift;;
     --build-only) BUILD_ONLY=1; shift;;
+    --build) FORCE_BUILD=1; shift;;
     -y|--yes) YES=1; shift;;
     -h|--help) usage; exit 0;;
     *) usage; die "Tùy chọn không hợp lệ: $1";;
@@ -56,12 +58,24 @@ FREE_GB=$(df -Pk . | awk 'NR==2{printf "%d", $4/1024/1024}')
 MEM_GB=$(awk '/MemTotal/{printf "%d", $2/1024/1024}' /proc/meminfo 2>/dev/null || echo 8)
 [ "${MEM_GB:-8}" -ge 6 ] || warn "RAM ~${MEM_GB}GB: build giao diện có thể bị thiếu bộ nhớ (khuyến nghị >= 6GB, hoặc thêm swap)."
 
-# ---------- 1b. Chế độ chỉ build ----------
+# Lấy image: ưu tiên tải sẵn từ Docker Hub (vài chục giây); không tải được thì build từ source.
+get_images() {
+  if [ "$FORCE_BUILD" -eq 0 ]; then
+    say "Tải image từ Docker Hub (ntanhprt/viewio, ntanhprt/viewio-converter)..."
+    if docker compose pull 2>&1 | tail -3; [ "${PIPESTATUS[0]}" -eq 0 ]; then return 0; fi
+    warn "Không tải được image dựng sẵn — chuyển sang build từ source."
+  fi
+  say "Build image từ source (lần đầu ~8-15 phút: tải thư viện + biên dịch giao diện và MinIO)..."
+  DOCKER_BUILDKIT=1 docker compose build
+}
+
+# ---------- 1b. Chế độ chỉ chuẩn bị image ----------
 if [ "$BUILD_ONLY" -eq 1 ]; then
-  say "Chỉ build image (không tạo .env, không khởi động, không đụng tới MinIO đang chạy)..."
-  VIEWIO_ROOT_USER=build VIEWIO_ROOT_PASSWORD=build-only-not-used DOCKER_BUILDKIT=1 docker compose build
-  say "Xong. Image đã có: viewio/minio:2025-04-22 và viewio/converter:1"
-  say "Bước tiếp theo: docs/INSTALL.md mục 4 (nâng cấp MinIO đã cài tại chỗ)."
+  say "Chỉ chuẩn bị image (không tạo .env, không khởi động, không đụng tới MinIO đang chạy)..."
+  export VIEWIO_ROOT_USER=build VIEWIO_ROOT_PASSWORD=build-only-not-used
+  get_images
+  say "Xong. Image đã có: ntanhprt/viewio:2025-04-22 và ntanhprt/viewio-converter:1"
+  say "Bước tiếp theo: docs/INSTALL.md mục 3b (nâng cấp MinIO đã cài tại chỗ)."
   exit 0
 fi
 
@@ -110,8 +124,7 @@ mkdir -p "$DATA_DIR" || die "Không tạo được thư mục dữ liệu $DATA_
 say "Dữ liệu sẽ nằm ở: $DATA_DIR"
 
 # ---------- 4. Build ----------
-say "Build image (lần đầu mất ~8-15 phút: tải thư viện + biên dịch giao diện và MinIO)..."
-DOCKER_BUILDKIT=1 docker compose build
+get_images
 [ "$NO_START" -eq 0 ] || { say "Đã build xong. Khởi động bằng: ./viewio.sh start"; exit 0; }
 
 # ---------- 5. Khởi động ----------

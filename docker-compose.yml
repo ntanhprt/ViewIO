@@ -5,7 +5,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    image: viewio/minio:2025-04-22
+    image: ${VIEWIO_IMAGE:-ntanhprt/viewio:2025-04-22}
     container_name: viewio-minio
     command: server /data --console-address ":9001"
     user: "${VIEWIO_UID:-1000}:${VIEWIO_GID:-1000}"
@@ -43,7 +43,7 @@ services:
   converter:
     build:
       context: ./converter
-    image: viewio/converter:1
+    image: ${VIEWIO_CONVERTER_IMAGE:-ntanhprt/viewio-converter:1}
     container_name: viewio-converter
     restart: unless-stopped
     user: "1000:1000"

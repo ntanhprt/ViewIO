@@ -20,12 +20,12 @@ Mục lục: [1. Yêu cầu](#1-yêu-cầu) · [2. Chuẩn bị máy](#2-chuẩn
 |---|---|---|
 | Hệ điều hành | Linux x86_64 (Ubuntu 22.04/24.04, Debian 12, Rocky/Alma 9…) | ARM chưa kiểm thử |
 | Docker Engine | 24 trở lên | kèm **Docker Compose v2** (lệnh `docker compose`) |
-| RAM | 6 GB khi **build**; 1 GB khi chạy | thiếu RAM thì thêm swap |
-| Ổ đĩa | ~8 GB trống cho build + dung lượng dữ liệu của bạn | hai image cuối ~0,8 GB (converter ~640 MB do có LibreOffice, MinIO ~120 MB) |
-| Internet | chỉ cần **khi build** | truy cập được: Docker Hub, registry.npmjs.org, github.com, proxy.golang.org |
+| RAM | 1 GB khi chạy; 6 GB nếu phải **build từ source** | chỉ cần 6 GB khi không tải được image dựng sẵn |
+| Ổ đĩa | ~2 GB cho image (8 GB nếu build từ source) + dung lượng dữ liệu của bạn | hai image cuối ~0,8 GB (converter ~640 MB do có LibreOffice, MinIO ~120 MB) |
+| Internet | chỉ cần **khi cài** để tải image | mặc định tải image dựng sẵn từ Docker Hub (`ntanhprt/viewio`, `ntanhprt/viewio-converter`). Chỉ khi build từ source mới cần thêm registry.npmjs.org, github.com, proxy.golang.org |
 | Cổng | 9000 (S3 API) và 9001 (giao diện) | đổi được, xem [mục 4](#4-tùy-chọn-cài-đặt) |
 
-> Chạy xong rồi thì **không cần Internet** nữa.
+> Chạy xong rồi thì **không cần Internet** nữa. Image chỉ có bản **linux/amd64** (máy x86_64); máy ARM phải build từ source (`./install.sh --build`, chưa kiểm thử).
 
 ## 2. Chuẩn bị máy
 
@@ -60,7 +60,7 @@ Script sẽ lần lượt:
 2. Tạo file `.env` (cấu hình) từ `.env.example`, **sinh mật khẩu ngẫu nhiên 24 ký tự** cho tài khoản quản trị, điền UID/GID của bạn để file dữ liệu thuộc user thường.
 3. Kiểm tra cổng 9000/9001 có đang bị chiếm không.
 4. Tạo thư mục dữ liệu (`./data` mặc định).
-5. **Build** hai image (lần đầu ~10–15 phút; các lần sau nhanh nhờ cache).
+5. **Tải hai image dựng sẵn từ Docker Hub** (~1–2 phút; ~0,8 GB). Nếu không tải được thì tự **build từ source** (~10–15 phút). Muốn ép build: `./install.sh --build`.
 6. Khởi động và chờ MinIO báo sẵn sàng.
 7. In ra địa chỉ truy cập, tài khoản, mật khẩu.
 
@@ -90,7 +90,8 @@ Dành cho trường hợp bạn **đã cài MinIO, đang chạy ở các cổng 
 |---|---|
 | Toàn bộ dữ liệu: bucket, object, version, tag, lifecycle… | Giao diện web (Console): viewer tài liệu, cây thư mục, double-click, menu gọn |
 | User, group, policy, access key, service account | Thêm 1 container nhỏ `viewio-converter` (chỉ để xem PowerPoint/Office cũ) |
-| Tài khoản root và mật khẩu | Image mới là Alpine, **không có lệnh `mc` bên trong** (xem lưu ý bên dưới) |
+| Tài khoản root và mật khẩu | Image mới dựa trên Alpine (image gốc dựa trên UBI): khác hệ nền nhưng vẫn có đủ `minio` và `mc` ở `/usr/bin` |
+| Các script đang dùng `docker exec <container> mc ...` | Không còn `docker-entrypoint.sh` của image gốc (tính năng `MINIO_USERNAME`/`MINIO_GROUPNAME` đã deprecated); nếu bạn dùng thì báo trước khi nâng cấp |
 | Cổng, địa chỉ, volume, `user:`, biến môi trường, S3 API | |
 | Ứng dụng đang kết nối vào MinIO | |
 
@@ -105,16 +106,20 @@ Dành cho trường hợp bạn **đã cài MinIO, đang chạy ở các cổng 
 3. Ghi lại cấu hình đang chạy để so sánh/rollback: `docker inspect <tên-container> > minio-truoc-khi-nang-cap.json`.
 4. Làm vào lúc ít người dùng: MinIO sẽ **ngắt vài giây** khi khởi động lại.
 
-### 3b.1 Build image ViewIO (không ảnh hưởng MinIO đang chạy)
+### 3b.1 Lấy image ViewIO (không ảnh hưởng MinIO đang chạy)
+
+Cách nhanh nhất — chỉ cần tải image, **không cần clone repo**:
 
 ```bash
-git clone https://github.com/ntanhprt/ViewIO.git
-cd ViewIO
-./install.sh --build-only
+docker pull ntanhprt/viewio:2025-04-22
+docker pull ntanhprt/viewio-converter:1
 ```
 
-`--build-only` chỉ tạo hai image `viewio/minio:2025-04-22` và `viewio/converter:1` (10–15 phút lần đầu). Nó **không** tạo `.env`, **không** kiểm tra/chiếm cổng, **không** khởi động gì, **không** đụng thư mục dữ liệu nào.
-Chỉ cần build **một lần** trên máy; nhiều MinIO trên cùng máy dùng chung các image này.
+Hoặc (cùng kết quả) qua script: `git clone https://github.com/ntanhprt/ViewIO.git && cd ViewIO && ./install.sh --build-only`
+(script tải image; nếu không tải được thì tự build từ source, 10–15 phút).
+
+Cả hai cách đều **không** tạo `.env`, **không** kiểm tra/chiếm cổng, **không** khởi động gì, **không** đụng thư mục dữ liệu nào.
+Chỉ cần lấy image **một lần** trên mỗi máy; nhiều MinIO trên cùng máy dùng chung các image này.
 
 Bước tiếp theo tùy cách MinIO của bạn đang chạy:
 
@@ -126,18 +131,15 @@ Mở file `docker-compose.yml` của MinIO cũ và sửa **đúng các chỗ sau
  services:
    minio:
 -    image: minio/minio:RELEASE.2025-04-22T22-12-26Z
-+    image: viewio/minio:2025-04-22
++    image: ntanhprt/viewio:2025-04-22
      command: server /data --console-address ":9001"
      environment:
        MINIO_ROOT_USER: ...        # giữ nguyên
        MINIO_ROOT_PASSWORD: ...    # giữ nguyên
 +      DOCVIEW_CONVERTER_URL: http://converter:8080
-     healthcheck:
--      test: ["CMD", "mc", "ready", "local"]
-+      test: ["CMD", "curl", "-fsS", "http://localhost:9000/minio/health/ready"]
 +
 +  converter:
-+    image: viewio/converter:1
++    image: ntanhprt/viewio-converter:1
 +    restart: unless-stopped
 +    user: "1000:1000"
 +    volumes:
@@ -149,7 +151,8 @@ Mở file `docker-compose.yml` của MinIO cũ và sửa **đúng các chỗ sau
 
 Lưu ý khi sửa:
 
-- **Healthcheck bắt buộc đổi** (nếu có dùng `mc ready local`) vì image ViewIO không có `mc`; để nguyên thì container sẽ bị đánh dấu `unhealthy`.
+- **Healthcheck giữ nguyên được** (kể cả `mc ready local`) vì image ViewIO có sẵn `mc`; lệnh `docker exec <container> mc ...` cũng chạy như trước. Nếu bạn muốn dùng `curl` thay `mc` thì cũng được (image có `curl`).
+- Nếu compose có `pull_policy: never` hoặc script tự chạy `docker compose pull` với image khác: không ảnh hưởng, vì `ntanhprt/viewio` có sẵn trên Docker Hub.
 - Nếu `command:` của bạn viết là `minio server ...` thì **bỏ chữ `minio` đi** → `server ...` (image ViewIO đã có sẵn entrypoint `minio`).
 - Nếu MinIO nằm trong một **network riêng/`external`**, thêm đúng network đó cho service `converter` (để MinIO gọi được `http://converter:8080`).
 - Nếu bạn chạy MinIO bằng user thường kèm `HOME: /mc` (hoặc tương tự) → giữ nguyên.
@@ -164,7 +167,7 @@ docker compose ps                      # minio phải "healthy", converter "Up"
 docker exec <tên-container-minio> minio --version   # vẫn RELEASE.2025-04-22T22-12-26Z
 ```
 
-**Rollback (đã thử):** đổi lại dòng `image:` và `healthcheck` về như cũ rồi `docker compose up -d`. Dữ liệu không bị ảnh hưởng.
+**Rollback (đã thử):** đổi lại dòng `image:` về như cũ (và bỏ `DOCVIEW_CONVERTER_URL`/`converter` nếu muốn) rồi `docker compose up -d`. Dữ liệu không bị ảnh hưởng.
 
 ### 3b.2-B. MinIO chạy bằng `docker run` thuần
 
@@ -176,7 +179,7 @@ docker inspect <tên-container> --format '{{json .HostConfig}} {{json .Config.En
 
 # 2. chạy converter trong CÙNG network với MinIO
 docker run -d --name viewio-converter --restart unless-stopped -u 1000:1000 \
-  --network <network-của-minio> -v viewio-converter-cache:/cache viewio/converter:1
+  --network <network-của-minio> -v viewio-converter-cache:/cache ntanhprt/viewio-converter:1
 
 # 3. dừng + xóa container MinIO cũ (dữ liệu nằm ở volume/thư mục host nên KHÔNG mất)
 docker stop <tên-container> && docker rm <tên-container>
@@ -184,7 +187,7 @@ docker stop <tên-container> && docker rm <tên-container>
 # 4. chạy lại với CÙNG tùy chọn như cũ, chỉ đổi image và thêm biến DOCVIEW_CONVERTER_URL
 docker run -d --name <tên-container> ...(các tùy chọn cũ)... \
   -e DOCVIEW_CONVERTER_URL=http://viewio-converter:8080 \
-  viewio/minio:2025-04-22 server /data --console-address ":9001"
+  ntanhprt/viewio:2025-04-22 server /data --console-address ":9001"
 ```
 
 ### 3b.2-C. MinIO chạy bằng binary / systemd (không Docker)
@@ -192,15 +195,15 @@ docker run -d --name <tên-container> ...(các tùy chọn cũ)... \
 Binary ViewIO là **file tĩnh** (không phụ thuộc thư viện hệ thống), chạy được trên mọi Linux x86_64.
 
 ```bash
-# 1. lấy binary ra khỏi image (trên máy đã build ở 3b.1)
-docker create --name viewio-extract viewio/minio:2025-04-22
+# 1. lấy binary ra khỏi image (trên máy đã docker pull ở 3b.1)
+docker create --name viewio-extract ntanhprt/viewio:2025-04-22
 docker cp viewio-extract:/usr/bin/minio ./minio-viewio
 docker rm viewio-extract
 ./minio-viewio --version          # RELEASE.2025-04-22T22-12-26Z
 
 # 2. converter vẫn chạy bằng Docker, chỉ nghe trên localhost
 docker run -d --name viewio-converter --restart unless-stopped -u 1000:1000 \
-  -p 127.0.0.1:18080:8080 -v viewio-converter-cache:/cache viewio/converter:1
+  -p 127.0.0.1:18080:8080 -v viewio-converter-cache:/cache ntanhprt/viewio-converter:1
 
 # 3. cho MinIO biết địa chỉ converter: thêm vào file biến môi trường của dịch vụ
 #    (thường /etc/default/minio hoặc dòng Environment= trong unit systemd)
@@ -216,11 +219,11 @@ sudo systemctl status minio --no-pager
 ```
 
 **Rollback:** `sudo systemctl stop minio && sudo cp /usr/local/bin/minio.bak-<ngày> /usr/local/bin/minio && sudo systemctl start minio`.
-Máy không có Docker? Build ở máy khác rồi chép file `minio-viewio` sang; phần xem PowerPoint/Office cũ cần converter nên có thể bỏ qua (Word `.docx`, Excel `.xlsx`, PDF, ảnh, Markdown… vẫn xem được, không cần converter).
+Máy không có Docker? Lấy binary ở máy khác (làm bước 1 ở đó) rồi chép file `minio-viewio` sang; phần xem PowerPoint/Office cũ cần converter nên có thể bỏ qua (Word `.docx`, Excel `.xlsx`, PDF, ảnh, Markdown… vẫn xem được, không cần converter).
 
 ### 3b.3 Có nhiều MinIO ở các cổng khác nhau?
 
-Lặp lại bước 3b.2 cho **từng** MinIO. Không cần build lại: các image dùng chung.
+Lặp lại bước 3b.2 cho **từng** MinIO. Chỉ `docker pull` một lần: các image dùng chung.
 **Một converter dùng chung được cho nhiều MinIO** — chỉ cần mỗi MinIO trỏ `DOCVIEW_CONVERTER_URL` tới cùng converter đó (cùng network Docker, hoặc `http://<host>:<port>` nếu khác máy). Nếu muốn tách biệt hoàn toàn thì mỗi MinIO một converter cũng được. Giới hạn mặc định: 2 lượt chuyển đổi đồng thời.
 
 Nâng cấp **lần lượt từng cái**, kiểm tra xong cái này mới sang cái khác.
@@ -237,7 +240,7 @@ Nếu bước 1–3 có vấn đề: **rollback ngay** theo hướng dẫn của
 
 ### 3b.5 Về sau
 
-- Muốn lấy bản ViewIO mới: `git pull && ./install.sh --build-only`, rồi `docker compose up -d` ở thư mục MinIO cũ (hoặc thay binary lại như 3b.2-C).
+- Muốn lấy bản ViewIO mới: `docker pull ntanhprt/viewio:latest` (hoặc tag phiên bản cụ thể như `:1.0.0`), rồi `docker compose up -d` ở thư mục MinIO cũ (hoặc thay binary lại như 3b.2-C).
 - Muốn quay về MinIO gốc: rollback như trên. ViewIO không để lại thay đổi nào trong dữ liệu.
 - Chưa kiểm thử với MinIO cấu hình SSO (OpenID/LDAP): phần đăng nhập không bị sửa, nhưng hãy thử trên một bản sao trước.
 
@@ -257,7 +260,9 @@ Chỉ có tác dụng khi **tạo `.env` lần đầu**.
 | `--console-port N` | cổng giao diện web | `9001` |
 | `--bind ADDR` | địa chỉ lắng nghe; `127.0.0.1` = chỉ truy cập từ chính máy | `0.0.0.0` |
 | `--data-dir PATH` | thư mục chứa dữ liệu | `./data` |
-| `--no-start` | chỉ build, chưa chạy | |
+| `--no-start` | tạo `.env` + lấy image, chưa chạy | |
+| `--build` | build từ source thay vì tải image Docker Hub | |
+| `--build-only` | chỉ lấy image, không tạo `.env` (dùng khi nâng cấp MinIO có sẵn) | |
 | `-y`, `--yes` | không hỏi | |
 
 Ví dụ: cài vào ổ dữ liệu riêng, đổi cổng:
@@ -319,7 +324,7 @@ mc ls viewio
 
 ```bash
 cd ViewIO
-./viewio.sh update      # git pull + build + chạy lại
+./viewio.sh update      # git pull + tải image mới + chạy lại
 ```
 
 Dữ liệu (`VIEWIO_DATA_DIR`) và `.env` không bị đụng tới. MinIO ngắt vài giây khi khởi động lại.
@@ -411,7 +416,7 @@ Với S3 API (cổng 9000) làm tương tự ở một `server` riêng (không c
 
 ```bash
 ./viewio.sh down                         # xóa container, GIỮ dữ liệu và .env
-docker compose down -v --rmi local       # xóa thêm cache converter và image đã build
+docker compose down -v --rmi local       # xóa thêm cache converter và image
 rm -rf ./data                            # CHỈ khi chắc chắn muốn xóa vĩnh viễn dữ liệu
 ```
 
@@ -423,7 +428,8 @@ rm -rf ./data                            # CHỈ khi chắc chắn muốn xóa v
 | *Cần Docker Compose v2* | Cài plugin: `sudo apt-get install docker-compose-plugin` |
 | *Cổng 9000/9001 đang bị chiếm* | Dịch vụ khác (có thể là MinIO cũ). Xem `ss -ltnp | grep 9001`, hoặc đổi cổng bằng `--console-port`/`--api-port` |
 | Build chết giữa chừng ở bước `react-scripts build` (có chữ `Killed`) | Thiếu RAM. Thêm swap 4GB: `sudo fallocate -l 4G /swapfile && sudo chmod 600 /swapfile && sudo mkswap /swapfile && sudo swapon /swapfile`, rồi chạy lại `./install.sh` |
-| Build lỗi tải thư viện (npm/github/golang proxy) | Máy không ra được Internet hoặc bị chặn. Cấu hình proxy cho Docker, hoặc build ở máy có mạng rồi `docker save`/`docker load` image sang máy đích |
+| Không tải được image từ Docker Hub (`pull access denied`/timeout) | Kiểm tra Internet/proxy của Docker; tên image phải đúng `ntanhprt/viewio:2025-04-22`. Script sẽ tự chuyển sang build từ source |
+| Build từ source lỗi tải thư viện (npm/github/golang proxy) | Máy không ra được Internet hoặc bị chặn. Cấu hình proxy cho Docker, hoặc build ở máy có mạng rồi `docker save`/`docker load` image sang máy đích |
 | Báo lỗi `canvas install ... Failed` khi build | **Bình thường**, bỏ qua (gói tùy chọn của pdf.js) |
 | Đăng nhập được nhưng `MinIO chưa sẵn sàng` mãi | `./viewio.sh logs minio`. Hay gặp: thư mục dữ liệu sai quyền → `sudo chown -R $(id -u):$(id -g) <thư-mục-dữ-liệu>` |
 | `Permission denied` trong log MinIO | `VIEWIO_UID/GID` trong `.env` không khớp chủ sở hữu thư mục dữ liệu |

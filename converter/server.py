@@ -36,7 +36,7 @@ CACHE_DAYS = int(os.environ.get("CACHE_DAYS", "7"))
 THUMB_CACHE_DAYS = int(os.environ.get("THUMB_CACHE_DAYS", "60"))
 ALLOW_ORIGIN = os.environ.get("ALLOW_ORIGIN", "*")
 
-THUMB_W, THUMB_H = 360, 270
+THUMB_W, THUMB_H = 250, 188  # cạnh dài tối đa 250px (tỉ lệ ~4:3) cho nhẹ
 Image.MAX_IMAGE_PIXELS = 120_000_000  # chặn "decompression bomb"
 
 ALLOWED = {
@@ -130,7 +130,7 @@ def _tile(img: Image.Image, mode: str) -> Image.Image:
 
 def _encode(img: Image.Image) -> bytes:
     buf = io.BytesIO()
-    img.save(buf, "WEBP", quality=80, method=4)
+    img.save(buf, "WEBP", quality=72, method=6)
     return buf.getvalue()
 
 
@@ -151,7 +151,7 @@ def _pdf_first_page(pdf_bytes: bytes) -> Image.Image:
         with open(os.path.join(work, "in.pdf"), "wb") as f:
             f.write(pdf_bytes)
         subprocess.run(
-            ["pdftoppm", "-f", "1", "-l", "1", "-png", "-scale-to", "720", "-singlefile",
+            ["pdftoppm", "-f", "1", "-l", "1", "-png", "-scale-to", "600", "-singlefile",
              os.path.join(work, "in.pdf"), os.path.join(work, "out")],
             capture_output=True, timeout=40, check=True)
         out = os.path.join(work, "out.png")
@@ -177,7 +177,7 @@ def _thumb_video(data: bytes, ext: str) -> Image.Image:
             try:
                 subprocess.run(
                     ["ffmpeg", "-v", "error", "-y", "-i", src] + seek +
-                    ["-frames:v", "1", "-vf", "scale=720:-2", out],
+                    ["-frames:v", "1", "-vf", "scale=500:-2", out],
                     capture_output=True, timeout=45, check=True)
             except subprocess.SubprocessError:
                 pass
@@ -195,21 +195,21 @@ def _thumb_video(data: bytes, ext: str) -> Image.Image:
 def _thumb_text(data: bytes) -> Image.Image:
     text = data[:4096].decode("utf-8", "replace")
     text = "".join(ch if (ch == "\n" or ch == "\t" or ch >= " ") else " " for ch in text)
-    lines = [ln.expandtabs(4).rstrip() for ln in text.splitlines()][:14]
+    lines = [ln.expandtabs(4).rstrip() for ln in text.splitlines()][:12]
     if not any(lines):
         raise Unsupported("file trống")
     font = None
     for p in FONT_PATHS:
         if os.path.exists(p):
-            font = ImageFont.truetype(p, 12)
+            font = ImageFont.truetype(p, 10)
             break
     font = font or ImageFont.load_default()
     img = Image.new("RGB", (THUMB_W, THUMB_H), (251, 251, 252))
     d = ImageDraw.Draw(img)
-    y = 12
+    y = 8
     for ln in lines:
-        d.text((14, y), (ln[:44] + "…") if len(ln) > 44 else ln, fill=(52, 58, 66), font=font)
-        y += 18
+        d.text((9, y), (ln[:38] + "…") if len(ln) > 38 else ln, fill=(52, 58, 66), font=font)
+        y += 14
     d.rectangle([0, 0, THUMB_W - 1, THUMB_H - 1], outline=(222, 226, 230))
     return img
 

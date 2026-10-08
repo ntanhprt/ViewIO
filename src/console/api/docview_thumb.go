@@ -45,7 +45,7 @@ import (
 // khóa = sha256(bucket, object, version, etag, size), nên file đổi nội dung thì tự tạo lại.
 
 const (
-	thumbKeyVersion = "v1"
+	thumbKeyVersion = "v2" // đổi khi đổi kích thước/định dạng thumbnail để bỏ cache cũ
 	thumbCacheTTL   = 24 * time.Hour
 	thumbTextBytes  = 4096
 	thumbVideoBytes = 24 << 20

@@ -1,7 +1,7 @@
 # ViewIO converter — Office → PDF và thumbnail
 
 Dịch vụ nhỏ đi kèm [`ntanhprt/viewio`](https://hub.docker.com/r/ntanhprt/viewio): nhận file Word/Excel/PowerPoint (`doc docx docm rtf odt xls xlsx xlsm ods ppt pptx pps ppsx odp`) và trả về **PDF** để giao diện ViewIO xem trước.
-Ngoài ra tạo **thumbnail** (WebP 360×270) cho chế độ xem lưới: ảnh, trang đầu PDF/Office, khung hình video (ffmpeg), phần đầu file text/code. Có cache theo nội dung file (mở lại cùng file là tức thì), giới hạn 100 MB, mặc định 2 lượt chuyển đổi đồng thời.
+Ngoài ra tạo **thumbnail** (WebP tối đa 250 px) cho chế độ xem lưới: ảnh, trang đầu PDF/Office, khung hình video (ffmpeg), phần đầu file text/code. Có cache theo nội dung file (mở lại cùng file là tức thì), giới hạn 100 MB, mặc định 2 lượt chuyển đổi đồng thời.
 
 Mã nguồn / hướng dẫn: **https://github.com/ntanhprt/ViewIO**
 

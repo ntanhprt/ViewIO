@@ -1,0 +1,61 @@
+/* ViewIO: thanh chọn chế độ xem — màu xám trong suốt nên hợp cả nền sáng lẫn tối */
+.vm-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 10px;
+  white-space: nowrap;
+}
+.vm-group {
+  display: inline-flex;
+  align-items: center;
+  border: 1px solid rgba(128, 128, 128, 0.45);
+  border-radius: 4px;
+  overflow: hidden;
+}
+.vm-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 28px;
+  height: 28px;
+  padding: 0 7px;
+  border: 0;
+  border-right: 1px solid rgba(128, 128, 128, 0.3);
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+  opacity: 0.75;
+}
+.vm-btn:last-child {
+  border-right: 0;
+}
+.vm-btn:hover {
+  opacity: 1;
+  background: rgba(128, 128, 128, 0.2);
+}
+.vm-btn.vm-on {
+  opacity: 1;
+  background: rgba(37, 99, 235, 0.85);
+  color: #fff;
+}
+.vm-select {
+  height: 28px;
+  border: 0;
+  border-right: 1px solid rgba(128, 128, 128, 0.3);
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-size: 12px;
+  padding: 0 4px;
+}
+.vm-select option {
+  color: #1f2933;
+}
+@media (max-width: 900px) {
+  .vm-bar {
+    display: none;
+  }
+}

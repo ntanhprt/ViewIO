@@ -16,6 +16,8 @@ xem trước PDF/Word/Excel/PowerPoint/Markdown/code/ảnh/video ngay trong trì
 | Markdown, code, log, JSON, YAML… | không | hiển thị đẹp, highlight, số dòng, tìm kiếm |
 | Ảnh | xem tĩnh | zoom, kéo, xoay, lật |
 | Mở xem | chọn file → bấm Preview | **double-click file** là xem |
+| Chế độ xem | chỉ danh sách | **danh sách hoặc thumbnail** (ảnh, trang đầu PDF/Word/Excel/PowerPoint, khung hình video, nội dung đầu file text/CSV/code; loại khác dùng icon). Có cache, 3 cỡ thẻ, sắp xếp |
+| Cột danh sách | Name · Last Modified · Size | Name · **Size · Last Modified**; dòng kẻ giữa các hàng nhạt, đỡ vướng mắt |
 | Cây thư mục | không | thanh bên trái, bung/thu từng nhánh, kéo đổi độ rộng (mặc định ẩn) |
 | Menu trái (thu nhỏ) | 80px | 40px |
 | Giao diện sáng/tối | có | viewer theo đúng theme |

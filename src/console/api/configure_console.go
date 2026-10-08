@@ -406,7 +406,7 @@ func FileServerMiddleware(next http.Handler) http.Handler {
 		case strings.HasPrefix(r.URL.Path, "/ws"):
 			serveWS(w, r)
 		case strings.HasPrefix(r.URL.Path, "/docview/"):
-			serveDocviewConvert(w, r)
+			serveDocview(w, r)
 		case strings.HasPrefix(r.URL.Path, "/api"):
 			next.ServeHTTP(w, r)
 		default:

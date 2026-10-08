@@ -20,7 +20,12 @@ samples/                     file mẫu để thử viewer
 | Nhận diện loại file để xem | `.../Objects/utils.ts` (`extensionPreview`, `contentTypePreview`) |
 | Double-click file → viewer | `.../Objects/ListObjects/ListObjectsTable.tsx` |
 | Cây thư mục | `src/console/web-app/src/screens/Console/ObjectBrowser/FolderTree/`, gắn trong `Buckets/BucketDetails/BrowserHandler.tsx` |
-| Menu trái thu nhỏ 80px → 40px | cuối `src/console/web-app/src/index.css` |
+| Menu trái thu nhỏ 80px → 40px; dòng kẻ hàng nhạt (`.rowLine`) | cuối `src/console/web-app/src/index.css` |
+| Chế độ thumbnail: lưới ảo, chọn/mở/double-click | `.../Objects/ListObjects/ThumbnailGrid.tsx`, chọn bảng/lưới trong `ListObjectsTable.tsx` |
+| Nút chuyển danh sách/thumbnail, cỡ thẻ, sắp xếp (nhớ trong localStorage `docview.listview`) | `.../ObjectBrowser/ViewModeToolbar.tsx`, `viewMode.ts`; gắn trong `BrowserBreadcrumbs.tsx` |
+| Cột Size đứng trước Last Modified | `.../Objects/ListObjects/ListObjectsHelpers.tsx` |
+| API thumbnail `/docview/thumb` (kiểm quyền bằng StatObject/GetObject của người dùng, khóa cache theo etag) | `src/console/api/docview_thumb.go` |
+| Tạo thumbnail + cache đĩa | `converter/server.py` (Pillow, poppler `pdftoppm`, ffmpeg, LibreOffice) |
 | Proxy `/docview/convert` (cùng origin để qua CSP, yêu cầu đã đăng nhập) | `src/console/api/docview_proxy.go` + 1 dòng route trong `api/configure_console.go` |
 | Gắn Console tùy biến vào MinIO | cuối `src/minio/go.mod` (`replace github.com/minio/console => ../console`) |
 

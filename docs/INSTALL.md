@@ -21,7 +21,7 @@ Mục lục: [1. Yêu cầu](#1-yêu-cầu) · [2. Chuẩn bị máy](#2-chuẩn
 | Hệ điều hành | Linux x86_64 (Ubuntu 22.04/24.04, Debian 12, Rocky/Alma 9…) | ARM chưa kiểm thử |
 | Docker Engine | 24 trở lên | kèm **Docker Compose v2** (lệnh `docker compose`) |
 | RAM | 1 GB khi chạy; 6 GB nếu phải **build từ source** | chỉ cần 6 GB khi không tải được image dựng sẵn |
-| Ổ đĩa | ~2 GB cho image (8 GB nếu build từ source) + dung lượng dữ liệu của bạn | hai image cuối ~0,8 GB (converter ~640 MB do có LibreOffice, MinIO ~120 MB) |
+| Ổ đĩa | ~2 GB cho image (8 GB nếu build từ source) + dung lượng dữ liệu của bạn | hai image cuối ~1,2 GB (converter ~1 GB do có LibreOffice + ffmpeg để tạo thumbnail, MinIO ~150 MB) |
 | Internet | chỉ cần **khi cài** để tải image | mặc định tải image dựng sẵn từ Docker Hub (`ntanhprt/viewio`, `ntanhprt/viewio-converter`). Chỉ khi build từ source mới cần thêm registry.npmjs.org, github.com, proxy.golang.org |
 | Cổng | 9000 (S3 API) và 9001 (giao diện) | đổi được, xem [mục 4](#4-tùy-chọn-cài-đặt) |
 
@@ -286,9 +286,16 @@ Sửa file rồi chạy `./viewio.sh restart` để áp dụng.
 | `VIEWIO_UID`, `VIEWIO_GID` | chạy MinIO bằng user này | user chạy `install.sh` |
 | `TZ` | múi giờ | `Asia/Ho_Chi_Minh` |
 | `VIEWIO_REDIRECT_URL` | URL công khai của giao diện khi đặt sau reverse proxy. **Để trống** thì link *Share* tự lấy theo địa chỉ người dùng đang mở; đã đặt giá trị thì MỌI link Share dùng đúng địa chỉ đó | trống |
-| `VIEWIO_CONVERTER_URL` | địa chỉ dịch vụ đổi Office→PDF; `off` để tắt | `http://converter:8080` |
+| `VIEWIO_CONVERTER_URL` | địa chỉ dịch vụ `converter` (đổi Office→PDF **và tạo thumbnail**); `off` để tắt | `http://converter:8080` |
 
-> Muốn **tắt hẳn** xem Office/PowerPoint (tiết kiệm ~640 MB và 1 container): đặt `VIEWIO_CONVERTER_URL=off`, xóa khối `converter:` trong `docker-compose.yml`, rồi `./viewio.sh restart`. Word `.docx`, Excel `.xlsx`, PDF… vẫn xem được vì chúng chạy ngay trên trình duyệt.
+> Muốn **tắt hẳn** xem Office/PowerPoint (tiết kiệm ~1 GB và 1 container; khi đó chế độ thumbnail chỉ hiện icon theo loại file): đặt `VIEWIO_CONVERTER_URL=off`, xóa khối `converter:` trong `docker-compose.yml`, rồi `./viewio.sh restart`. Word `.docx`, Excel `.xlsx`, PDF… vẫn xem được vì chúng chạy ngay trên trình duyệt.
+
+### Thumbnail (chế độ xem lưới) hoạt động thế nào
+
+- Thumbnail do dịch vụ `converter` tạo và **lưu cache trên đĩa** (volume `converter-cache`, giữ 60 ngày không dùng); trình duyệt cũng cache 24 giờ. File đổi nội dung thì thumbnail tự làm lại.
+- Lấy từ nội dung: ảnh (png, jpg, gif, webp, bmp, tiff…), trang đầu của PDF và Office (doc/docx, xls/xlsx, ppt/pptx, odt…), khung hình của video (mp4, mov, mkv, webm…), và phần đầu của file text/CSV/JSON/Markdown/code. Loại khác (zip, audio, file lạ), file quá lớn, hoặc không tạo được → hiện **icon theo loại file**.
+- Giới hạn đọc: ảnh ≤ 25 MB, PDF ≤ 40 MB, Office ≤ 25 MB, video chỉ đọc 24 MB đầu, text 4 KB đầu. Cần quyền đọc file mới thấy thumbnail (dùng chính tài khoản đang đăng nhập).
+- Chỉnh bằng biến môi trường của service `converter` (trong `docker-compose.yml`): `THUMB_CONCURRENCY` (số thumbnail dựng song song, mặc định 4), `THUMB_CACHE_DAYS` (mặc định 60), `CACHE_DAYS` (cache PDF, mặc định 7).
 
 ## 5. Kiểm tra sau khi cài
 

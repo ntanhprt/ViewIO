@@ -62,18 +62,18 @@ export const listModeColumns = [
     enableSort: true,
   },
   {
-    label: "Last Modified",
-    elementKey: "last_modified",
-    renderFunction: displayParsedDate,
-    renderFullObject: true,
-    enableSort: true,
-  },
-  {
     label: "Size",
     elementKey: "size",
     renderFunction: displayNiceBytes,
     renderFullObject: true,
     width: 100,
+    enableSort: true,
+  },
+  {
+    label: "Last Modified",
+    elementKey: "last_modified",
+    renderFunction: displayParsedDate,
+    renderFullObject: true,
     enableSort: true,
   },
 ];
@@ -86,18 +86,18 @@ export const rewindModeColumns = [
     enableSort: true,
   },
   {
-    label: "Object Date",
-    elementKey: "last_modified",
-    renderFunction: displayParsedDate,
-    renderFullObject: true,
-    enableSort: true,
-  },
-  {
     label: "Size",
     elementKey: "size",
     renderFunction: displayNiceBytes,
     renderFullObject: true,
     width: 100,
+    enableSort: true,
+  },
+  {
+    label: "Object Date",
+    elementKey: "last_modified",
+    renderFunction: displayParsedDate,
+    renderFullObject: true,
     enableSort: true,
   },
   {

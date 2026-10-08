@@ -52,7 +52,7 @@ LABEL org.opencontainers.image.title="ViewIO (MinIO + document viewer UI)" \
       org.opencontainers.image.description="MinIO RELEASE.2025-04-22T22-12-26Z with a Console that previews PDF/Word/Excel/PowerPoint/Markdown/code and a folder tree" \
       org.opencontainers.image.source="https://github.com/ntanhprt/ViewIO" \
       org.opencontainers.image.licenses="AGPL-3.0-or-later" \
-      org.opencontainers.image.version="1.0.0"
+      org.opencontainers.image.version="1.1.0"
 EXPOSE 9000 9001
 ENTRYPOINT ["/usr/bin/minio"]
 CMD ["server", "/data", "--console-address", ":9001"]

@@ -39,6 +39,7 @@ import { setSnackBarMessage } from "../../../systemSlice";
 import { AppState, useAppDispatch } from "../../../store";
 import { setVersionsModeEnabled } from "./objectBrowserSlice";
 import { getSessionGrantsWildCard } from "../Buckets/ListBuckets/UploadPermissionUtils";
+import ViewModeToolbar from "./ViewModeToolbar";
 
 const CreatePathModal = withSuspense(
   React.lazy(
@@ -288,6 +289,7 @@ const BrowserBreadcrumbs = ({
         >
           {listBreadcrumbs}
         </Breadcrumbs>
+        {!hidePathButton && !rewindEnabled && <ViewModeToolbar />}
         {!hidePathButton && (
           <Tooltip
             tooltip={

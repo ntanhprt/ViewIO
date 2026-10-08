@@ -38,6 +38,16 @@ const (
 
 var docviewClient = &http.Client{Timeout: 150 * time.Second}
 
+// serveDocview điều phối các đường /docview/* (ViewIO).
+func serveDocview(w http.ResponseWriter, r *http.Request) {
+	switch r.URL.Path {
+	case "/docview/thumb":
+		serveDocviewThumb(w, r)
+	default:
+		serveDocviewConvert(w, r)
+	}
+}
+
 func serveDocviewConvert(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost || r.URL.Path != "/docview/convert" {
 		http.Error(w, "not found", http.StatusNotFound)

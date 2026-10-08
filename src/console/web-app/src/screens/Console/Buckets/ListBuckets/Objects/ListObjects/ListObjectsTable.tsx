@@ -14,7 +14,7 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-import React, { useRef, useState } from "react";
+import React, { useRef } from "react";
 import { listModeColumns, rewindModeColumns } from "./ListObjectsHelpers";
 import { useSelector } from "react-redux";
 import { AppState, useAppDispatch } from "../../../../../../store";
@@ -39,6 +39,12 @@ import {
 import { hasPermission } from "../../../../../../common/SecureComponent";
 import { downloadObject } from "../../../../ObjectBrowser/utils";
 import { DataTable, ItemActions } from "mds";
+import ThumbnailGrid from "./ThumbnailGrid";
+import {
+  setViewState,
+  SortField,
+  useViewState,
+} from "../../../../ObjectBrowser/viewMode";
 import { BucketObject } from "api/consoleApi";
 
 const ListObjectsTable = () => {
@@ -46,10 +52,10 @@ const ListObjectsTable = () => {
   const params = useParams();
   const navigate = useNavigate();
 
-  const [sortDirection, setSortDirection] = useState<
-    "ASC" | "DESC" | undefined
-  >("ASC");
-  const [currentSortField, setCurrentSortField] = useState<string>("name");
+  // Chế độ xem + sắp xếp dùng chung với thanh công cụ (ViewIO)
+  const view = useViewState();
+  const sortDirection = view.sortDir;
+  const currentSortField = view.sortBy;
 
   const bucketName = params.bucketName || "";
 
@@ -79,6 +85,9 @@ const ListObjectsTable = () => {
   );
   const anonymousMode = useSelector(
     (state: AppState) => state.system.anonymousMode,
+  );
+  const selectedInternalPaths = useSelector(
+    (state: AppState) => state.objectBrowser.selectedInternalPaths,
   );
 
   const displayListObjects = hasPermission(bucketName, [
@@ -174,8 +183,10 @@ const ListObjectsTable = () => {
 
   const sortChange = (sortData: any) => {
     const newSortDirection = get(sortData, "sortDirection", "DESC");
-    setCurrentSortField(sortData.sortBy);
-    setSortDirection(newSortDirection);
+    setViewState({
+      sortBy: sortData.sortBy as SortField,
+      sortDir: newSortDirection === "ASC" ? "ASC" : "DESC",
+    });
     dispatch(setReloadObjectsList(true));
   };
 
@@ -211,6 +222,23 @@ const ListObjectsTable = () => {
     return elements;
   };
 
+  // Chế độ thumbnail: chọn / mở / xem nhanh cho từng thẻ
+  const toggleItem = (name: string, checked: boolean) => {
+    const elements = checked
+      ? [...selectedObjects, name]
+      : selectedObjects.filter((element) => element !== name);
+    dispatch(setSelectedObjects(elements));
+    dispatch(setSelectedObjectView(null));
+  };
+
+  const previewItem = (item: BucketObjectItem) => {
+    if (anonymousMode) {
+      return;
+    }
+    dispatch(setSelectedPreview(item));
+    dispatch(setPreviewOpen(true));
+  };
+
   let errorMessage =
     !displayListObjects && !anonymousMode
       ? permissionTooltipHelper(
@@ -230,6 +258,23 @@ const ListObjectsTable = () => {
 
   if (obOnly) {
     customPaperHeight = "calc(100vh - 315px)";
+  }
+
+  if (view.mode === "thumb" && !rewindEnabled) {
+    return (
+      <ThumbnailGrid
+        bucketName={bucketName}
+        items={payload}
+        selected={selectedObjects}
+        activeName={selectedInternalPaths}
+        size={view.size}
+        loading={requestInProgress}
+        emptyMessage={errorMessage}
+        onToggle={toggleItem}
+        onOpen={(item) => openPath(item as unknown as BucketObject)}
+        onPreview={previewItem}
+      />
+    );
   }
 
   return (

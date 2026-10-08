@@ -1,8 +1,8 @@
 # ViewIO — MinIO + giao diện xem tài liệu
 
-**EN:** MinIO (`RELEASE.2025-04-22T22-12-26Z`) with an upgraded web Console: in-browser preview of PDF, Word, Excel/CSV, PowerPoint, Markdown, code, images and video; a collapsible folder tree; double-click a file to preview. Drop-in replacement for the official `minio/minio` image — same data format, same S3 API, `mc` included.
+**EN:** MinIO (`RELEASE.2025-04-22T22-12-26Z`) with an upgraded web Console: in-browser preview of PDF, Word, Excel/CSV, PowerPoint, Markdown, code, images and video; a collapsible folder tree; a thumbnail grid view; double-click a file to preview. Drop-in replacement for the official `minio/minio` image — same data format, same S3 API, `mc` included.
 
-**VI:** MinIO có giao diện web đã nâng cấp: xem trước **PDF, Word, Excel/CSV, PowerPoint, Markdown, code, ảnh, video** ngay trong trình duyệt, **cây thư mục** bên trái, **double-click file để xem**. Thay thế trực tiếp image `minio/minio` chính thức — cùng định dạng dữ liệu, cùng S3 API, có sẵn `mc`.
+**VI:** MinIO có giao diện web đã nâng cấp: xem trước **PDF, Word, Excel/CSV, PowerPoint, Markdown, code, ảnh, video** ngay trong trình duyệt, **cây thư mục** bên trái, **chế độ xem thumbnail**, **double-click file để xem**. Thay thế trực tiếp image `minio/minio` chính thức — cùng định dạng dữ liệu, cùng S3 API, có sẵn `mc`.
 
 Mã nguồn, hướng dẫn đầy đủ: **https://github.com/ntanhprt/ViewIO** · Dịch vụ đi kèm (xem PowerPoint/Office cũ): [`ntanhprt/viewio-converter`](https://hub.docker.com/r/ntanhprt/viewio-converter)
 
@@ -19,7 +19,7 @@ docker run -d --name viewio --restart unless-stopped \
 ```
 
 Mở **http://localhost:9001** và đăng nhập. S3 API ở cổng **9000**. Word `.docx`, Excel `.xlsx`, CSV, PDF, ảnh, Markdown, code xem được ngay.
-Muốn xem thêm **PowerPoint và Word/Excel đời cũ** (`.pptx .ppt .doc .xls .odt .rtf`…) cần chạy thêm converter — cách đơn giản nhất là bộ cài đầy đủ bên dưới.
+Muốn xem thêm **PowerPoint và Word/Excel đời cũ** (`.pptx .ppt .doc .xls .odt .rtf`…) và có **thumbnail** cần chạy thêm converter — cách đơn giản nhất là bộ cài đầy đủ bên dưới.
 
 ## Cài đầy đủ (MinIO + converter) — khuyên dùng
 

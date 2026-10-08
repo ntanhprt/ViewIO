@@ -1,0 +1,59 @@
+# ViewIO — chạy bằng image dựng sẵn trên Docker Hub (không cần clone repo, không cần build)
+#
+#   mkdir viewio && cd viewio
+#   curl -fsSLO https://raw.githubusercontent.com/ntanhprt/ViewIO/main/examples/docker-compose.yml
+#   printf 'VIEWIO_ROOT_PASSWORD=%s\nVIEWIO_UID=%s\nVIEWIO_GID=%s\n' "$(openssl rand -hex 12)" "$(id -u)" "$(id -g)" > .env
+#   mkdir -p data && docker compose up -d
+#
+# Cấu hình qua file .env cạnh file này (mọi biến đều tùy chọn trừ VIEWIO_ROOT_PASSWORD):
+#   VIEWIO_ROOT_USER, VIEWIO_ROOT_PASSWORD, VIEWIO_API_PORT, VIEWIO_CONSOLE_PORT, VIEWIO_BIND,
+#   VIEWIO_DATA_DIR, VIEWIO_UID, VIEWIO_GID, VIEWIO_REDIRECT_URL, TZ
+
+name: viewio
+
+services:
+  minio:
+    image: ntanhprt/viewio:2025-04-22
+    container_name: viewio-minio
+    command: server /data --console-address ":9001"
+    user: "${VIEWIO_UID:-1000}:${VIEWIO_GID:-1000}"
+    restart: unless-stopped
+    environment:
+      MINIO_ROOT_USER: ${VIEWIO_ROOT_USER:-viewio-admin}
+      MINIO_ROOT_PASSWORD: ${VIEWIO_ROOT_PASSWORD:?Thiếu VIEWIO_ROOT_PASSWORD trong file .env (>= 8 ký tự)}
+      MINIO_BROWSER_REDIRECT_URL: ${VIEWIO_REDIRECT_URL:-}
+      DOCVIEW_CONVERTER_URL: http://converter:8080
+      HOME: /tmp
+      TZ: ${TZ:-Asia/Ho_Chi_Minh}
+    ports:
+      - "${VIEWIO_BIND:-0.0.0.0}:${VIEWIO_API_PORT:-9000}:9000"      # S3 API
+      - "${VIEWIO_BIND:-0.0.0.0}:${VIEWIO_CONSOLE_PORT:-9001}:9001"  # Giao diện web
+    volumes:
+      - ${VIEWIO_DATA_DIR:-./data}:/data
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:9000/minio/health/ready"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+    ulimits:
+      nofile:
+        soft: 65536
+        hard: 65536
+    logging:
+      driver: json-file
+      options:
+        max-size: "20m"
+        max-file: "5"
+
+  # Đổi PowerPoint/Word/Excel đời cũ sang PDF để xem trước. Không mở cổng ra ngoài.
+  converter:
+    image: ntanhprt/viewio-converter:1
+    container_name: viewio-converter
+    restart: unless-stopped
+    user: "1000:1000"
+    volumes:
+      - converter-cache:/cache
+
+volumes:
+  converter-cache:

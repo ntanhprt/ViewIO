@@ -155,6 +155,7 @@ Lưu ý khi sửa:
 - Nếu compose có `pull_policy: never` hoặc script tự chạy `docker compose pull` với image khác: không ảnh hưởng, vì `ntanhprt/viewio` có sẵn trên Docker Hub.
 - Nếu `command:` của bạn viết là `minio server ...` thì **bỏ chữ `minio` đi** → `server ...` (image ViewIO đã có sẵn entrypoint `minio`).
 - Nếu MinIO nằm trong một **network riêng/`external`**, thêm đúng network đó cho service `converter` (để MinIO gọi được `http://converter:8080`).
+- Compose cũ có `MINIO_BROWSER_REDIRECT_URL: http://localhost:...` thì **xóa dòng đó** (hoặc đặt đúng địa chỉ mọi người dùng để vào): nếu không, mọi link *Share* sẽ bắt đầu bằng `localhost` và người khác không mở được.
 - Nếu bạn chạy MinIO bằng user thường kèm `HOME: /mc` (hoặc tương tự) → giữ nguyên.
 - Dùng TLS (chứng chỉ ở `~/.minio/certs` hoặc `--certs-dir`)? Giữ nguyên volume và tham số như cũ; không có gì đổi.
 
@@ -284,7 +285,7 @@ Sửa file rồi chạy `./viewio.sh restart` để áp dụng.
 | `VIEWIO_DATA_DIR` | thư mục dữ liệu (nên dùng đường dẫn tuyệt đối) | `./data` |
 | `VIEWIO_UID`, `VIEWIO_GID` | chạy MinIO bằng user này | user chạy `install.sh` |
 | `TZ` | múi giờ | `Asia/Ho_Chi_Minh` |
-| `VIEWIO_REDIRECT_URL` | URL công khai của giao diện khi đặt sau reverse proxy | trống |
+| `VIEWIO_REDIRECT_URL` | URL công khai của giao diện khi đặt sau reverse proxy. **Để trống** thì link *Share* tự lấy theo địa chỉ người dùng đang mở; đã đặt giá trị thì MỌI link Share dùng đúng địa chỉ đó | trống |
 | `VIEWIO_CONVERTER_URL` | địa chỉ dịch vụ đổi Office→PDF; `off` để tắt | `http://converter:8080` |
 
 > Muốn **tắt hẳn** xem Office/PowerPoint (tiết kiệm ~640 MB và 1 container): đặt `VIEWIO_CONVERTER_URL=off`, xóa khối `converter:` trong `docker-compose.yml`, rồi `./viewio.sh restart`. Word `.docx`, Excel `.xlsx`, PDF… vẫn xem được vì chúng chạy ngay trên trình duyệt.
@@ -435,6 +436,7 @@ rm -rf ./data                            # CHỈ khi chắc chắn muốn xóa v
 | `Permission denied` trong log MinIO | `VIEWIO_UID/GID` trong `.env` không khớp chủ sở hữu thư mục dữ liệu |
 | Xem PowerPoint/Word cũ báo *Không kết nối được dịch vụ chuyển đổi* | `docker ps` xem `viewio-converter` có chạy không; `./viewio.sh logs converter`. Có thể bạn đã đặt `VIEWIO_CONVERTER_URL=off` |
 | File Office lớn xem báo *quá lớn* | Giới hạn 100 MB cho xem trước Office; tải xuống để mở |
+| Link **Share** bắt đầu bằng `http://localhost:...` nên người khác không mở được | MinIO đang có biến `MINIO_BROWSER_REDIRECT_URL` (hoặc `VIEWIO_REDIRECT_URL`) đặt là `localhost`. Xóa biến đó (hoặc đặt đúng địa chỉ người dùng truy cập, ví dụ `http://192.168.1.20:9001`) rồi tạo lại container; link đã tạo trước đó phải tạo lại. Khi nâng cấp MinIO có sẵn (mục 3b), kiểm tra compose cũ có dòng này không |
 | Sau reverse proxy, danh sách file không hiện / không tải được | Thiếu header WebSocket (`Upgrade`/`Connection`) cho đường `/ws`; xem mục 10 |
 | Quên mật khẩu | Xem `.env`; hoặc sửa `VIEWIO_ROOT_PASSWORD` rồi `./viewio.sh restart` |
 | Cần bắt đầu lại từ đầu | `./viewio.sh down`, xóa `.env`, chạy lại `./install.sh` (dữ liệu giữ nguyên nếu không xóa thư mục data) |

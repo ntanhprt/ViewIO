@@ -61,3 +61,7 @@ docker push --all-tags ntanhprt/viewio && docker push --all-tags ntanhprt/viewio
 ```
 Image chỉ linux/amd64. Nhãn OCI `org.opencontainers.image.source` trỏ về repo này (AGPL yêu cầu chỉ ra nơi lấy source).
 `mc` trong image được lấy từ image `minio/minio` chính thức (build-arg `MC_IMAGE`).
+
+Trang mô tả trên Docker Hub (Overview) lấy từ `docs/dockerhub-viewio.md` và `docs/dockerhub-converter.md`. Cập nhật:
+`DOCKERHUB_USER=ntanhprt DOCKERHUB_TOKEN=<PAT quyền Read & Write> ./scripts/dockerhub-description.sh`
+(hoặc dán nội dung vào mục Repository → Overview trên web).

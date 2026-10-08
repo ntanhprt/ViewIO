@@ -531,3 +531,69 @@
 a.dv-btn {
   text-decoration: none;
 }
+
+/* Toàn màn hình: ẩn thanh tiêu đề + thanh công cụ, di chuột lên mép trên để hiện lại */
+.dv-hot {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 14px;
+  z-index: 30;
+}
+.dv-immersive .dv-header,
+.dv-immersive .dv-toolbar {
+  position: absolute;
+  left: 0;
+  right: 0;
+  z-index: 25;
+  transform: translateY(-120%);
+  transition: transform 0.15s ease;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.2);
+}
+.dv-immersive .dv-header {
+  top: 0;
+}
+.dv-immersive .dv-toolbar {
+  top: 52px;
+}
+.dv-immersive.dv-reveal .dv-header,
+.dv-immersive.dv-reveal .dv-toolbar {
+  transform: none;
+}
+
+/* cỡ nội dung (A−/A+) */
+.dv-root > :not(.dv-header):not(.dv-hot) {
+  zoom: var(--dv-zoom, 1);
+}
+.dv-grp {
+  display: inline-flex;
+  gap: 2px;
+}
+/* thu gọn thanh tiêu đề: thanh mỏng, chỉ còn tên file + nút biểu tượng */
+.dv-hdr-min .dv-header {
+  height: 30px;
+  gap: 6px;
+  padding: 0 8px;
+}
+.dv-hdr-min .dv-header .dv-title span,
+.dv-hdr-min .dv-header .dv-badge,
+.dv-hdr-min .dv-header .dv-lbl {
+  display: none;
+}
+.dv-hdr-min .dv-header .dv-btn {
+  padding-top: 1px;
+  padding-bottom: 1px;
+  min-height: 0;
+  height: 22px;
+}
+.dv-hdr-min .dv-title b {
+  font-size: 13px;
+}
+.dv-immersive.dv-hdr-min .dv-toolbar {
+  top: 30px;
+}
+/* thu gọn thanh nút của nội dung */
+.dv-tb-min:not(.dv-immersive) .dv-toolbar {
+  display: none;
+}

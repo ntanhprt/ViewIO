@@ -297,6 +297,13 @@ Sửa file rồi chạy `./viewio.sh restart` để áp dụng.
 - **Toàn màn hình**: ẩn thêm hàng đường dẫn và menu trái — nội dung chiếm khoảng 96–98%. Thoát bằng chấm **✕** nhỏ ở góc trên phải, hoặc phím **Esc** (khi không mở viewer). Trong chế độ này vẫn điều hướng được bằng cây thư mục (dải mũi tên bên trái), double-click file để xem, kéo-thả để tải lên.
 Lựa chọn được nhớ trong trình duyệt và chỉ áp dụng cho Object Browser; các trang khác của Console không bị ảnh hưởng.
 
+**Khi đang xem nội dung một file** (viewer) thanh tiêu đề có thêm:
+- **A− / 100% / A+**: đổi cỡ nội dung (70%–200%), bấm số % để về chuẩn.
+- **Thanh nút**: thu gọn/hiện thanh công cụ riêng của loại file (zoom, trang, tìm kiếm…).
+- **Thu gọn menu**: thu thanh tiêu đề còn một dải mỏng (chỉ tên file và nút biểu tượng).
+- **Toàn màn hình** (hoặc phím **F**): ẩn cả hai thanh, dùng toàn màn hình của trình duyệt; di chuột lên mép trên để hiện lại thanh trong 2,5 giây. **Esc** để thu nhỏ, Esc lần nữa để đóng viewer.
+Các lựa chọn này được nhớ trong trình duyệt.
+
 ### Xem file HTML như trang web thật
 
 - Mở file `.html`/`.htm` bằng double-click: trang được dựng trong khung riêng tại địa chỉ `…/docview/raw/<bucket>/<đường dẫn>`. Vì vậy `<img src="img/a.png">`, `<link href="css/style.css">`, `<a href="trang-khac.html">` tự hiểu theo **thư mục chứa file** (thanh công cụ hiện *Base URL* của thư mục đó); đường dẫn gốc như `/img/a.png` được hiểu là gốc của **bucket**. File trong thư mục `a/b/` có `index.html` thì mở `a/b/` cũng ra trang đó.

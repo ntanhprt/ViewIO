@@ -14,6 +14,7 @@ xem trước PDF/Word/Excel/PowerPoint/Markdown/code/ảnh/video ngay trong trì
 | Excel `.xlsx`, CSV/TSV | không | bảng có lọc, nhiều sheet |
 | PowerPoint, `.doc`, `.xls`, `.odt`, `.rtf`… | không | tự chuyển sang PDF bằng LibreOffice rồi xem |
 | Markdown, code, log, JSON, YAML… | không | hiển thị đẹp, highlight, số dòng, tìm kiếm |
+| HTML | không | **dựng như trang web thật**: CSS/ảnh/trang liên kết theo đường dẫn tương đối của thư mục đang duyệt (có hiện Base URL), script bị tắt để an toàn; xem được cả mã nguồn |
 | Ảnh | xem tĩnh | zoom, kéo, xoay, lật |
 | Mở xem | chọn file → bấm Preview | **double-click file** là xem |
 | Chế độ xem | chỉ danh sách | **danh sách hoặc thumbnail** (ảnh, trang đầu PDF/Word/Excel/PowerPoint, khung hình video, nội dung đầu file text/CSV/code; loại khác dùng icon). Có cache, 3 cỡ thẻ, sắp xếp |

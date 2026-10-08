@@ -40,8 +40,10 @@ var docviewClient = &http.Client{Timeout: 150 * time.Second}
 
 // serveDocview điều phối các đường /docview/* (ViewIO).
 func serveDocview(w http.ResponseWriter, r *http.Request) {
-	switch r.URL.Path {
-	case "/docview/thumb":
+	switch {
+	case strings.HasPrefix(r.URL.Path, docviewRawPrefix):
+		serveDocviewRaw(w, r)
+	case r.URL.Path == "/docview/thumb":
 		serveDocviewThumb(w, r)
 	default:
 		serveDocviewConvert(w, r)

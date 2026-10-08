@@ -29,6 +29,7 @@ import TextViewer from "./DocViewer/TextViewer";
 import TableViewer from "./DocViewer/TableViewer";
 import DocxViewer from "./DocViewer/DocxViewer";
 import OfficeViewer from "./DocViewer/OfficeViewer";
+import HtmlViewer from "./DocViewer/HtmlViewer";
 
 interface IPreviewFileProps {
   bucketName: string;
@@ -43,6 +44,7 @@ const BADGES: Record<string, string> = {
   audio: "Âm thanh",
   video: "Video",
   markdown: "Markdown",
+  html: "HTML",
   code: "Văn bản",
   csv: "Bảng",
   excel: "Excel",
@@ -126,6 +128,15 @@ const PreviewFile = ({ bucketName, actualInfo, onResolved }: IPreviewFileProps) 
         <div className="dv-media dv-audio">
           <audio src={path} controls autoPlay />
         </div>
+      )}
+      {objectType === "html" && (
+        <HtmlViewer
+          bucketName={bucketName}
+          objectName={objectName}
+          fileName={fileName}
+          sourcePath={path}
+          onDownload={download}
+        />
       )}
       {(objectType === "code" || objectType === "markdown") && (
         <TextViewer

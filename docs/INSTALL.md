@@ -290,6 +290,12 @@ Sửa file rồi chạy `./viewio.sh restart` để áp dụng.
 
 > Muốn **tắt hẳn** xem Office/PowerPoint (tiết kiệm ~1 GB và 1 container; khi đó chế độ thumbnail chỉ hiện icon theo loại file): đặt `VIEWIO_CONVERTER_URL=off`, xóa khối `converter:` trong `docker-compose.yml`, rồi `./viewio.sh restart`. Word `.docx`, Excel `.xlsx`, PDF… vẫn xem được vì chúng chạy ngay trên trình duyệt.
 
+### Xem file HTML như trang web thật
+
+- Mở file `.html`/`.htm` bằng double-click: trang được dựng trong khung riêng tại địa chỉ `…/docview/raw/<bucket>/<đường dẫn>`. Vì vậy `<img src="img/a.png">`, `<link href="css/style.css">`, `<a href="trang-khac.html">` tự hiểu theo **thư mục chứa file** (thanh công cụ hiện *Base URL* của thư mục đó); đường dẫn gốc như `/img/a.png` được hiểu là gốc của **bucket**. File trong thư mục `a/b/` có `index.html` thì mở `a/b/` cũng ra trang đó.
+- **Script bị tắt** (sandbox, CSP `script-src 'none'`) vì nội dung do người khác tải lên: trang tĩnh (HTML + CSS + ảnh + font) hiển thị đầy đủ, còn trang cần JavaScript (SPA, biểu đồ…) sẽ không chạy. Tài nguyên ngoài (CDN ảnh/CSS/font bằng https) vẫn tải như web thường.
+- Cần quyền đọc file; mọi tài nguyên đi qua quyền của người đang đăng nhập. Nút **Mã nguồn** xem HTML gốc có tô màu cú pháp.
+
 ### Thumbnail (chế độ xem lưới) hoạt động thế nào
 
 - Thumbnail do dịch vụ `converter` tạo và **lưu cache trên đĩa** (volume `converter-cache`, giữ 60 ngày không dùng); trình duyệt cũng cache 24 giờ. File đổi nội dung thì thumbnail tự làm lại.

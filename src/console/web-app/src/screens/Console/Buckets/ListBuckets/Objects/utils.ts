@@ -204,6 +204,7 @@ export type AllowedPreviews =
   | "audio"
   | "video"
   | "markdown"
+  | "html"
   | "code"
   | "csv"
   | "excel"
@@ -228,6 +229,9 @@ const contentTypePreview = (contentType: string): AllowedPreviews => {
     }
     if (mimeObjectType.includes("markdown")) {
       return "markdown";
+    }
+    if (mimeObjectType.includes("text/html")) {
+      return "html";
     }
     if (mimeObjectType.includes("csv")) {
       return "csv";
@@ -270,8 +274,6 @@ export const codeExtensions = [
   "yaml",
   "yml",
   "xml",
-  "html",
-  "htm",
   "css",
   "scss",
   "js",
@@ -350,6 +352,10 @@ const extensionPreview = (fileName: string): AllowedPreviews => {
 
   if (fileExtension === "md" || fileExtension === "markdown") {
     return "markdown";
+  }
+
+  if (["html", "htm", "xhtml"].includes(fileExtension)) {
+    return "html";
   }
 
   if (fileExtension === "csv" || fileExtension === "tsv") {

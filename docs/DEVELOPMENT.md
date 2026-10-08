@@ -25,6 +25,7 @@ samples/                     file mẫu để thử viewer
 | Nút chuyển danh sách/thumbnail, cỡ thẻ, sắp xếp (nhớ trong localStorage `docview.listview`) | `.../ObjectBrowser/ViewModeToolbar.tsx`, `viewMode.ts`; gắn trong `BrowserBreadcrumbs.tsx` |
 | Cột Size đứng trước Last Modified | `.../Objects/ListObjects/ListObjectsHelpers.tsx` |
 | API thumbnail `/docview/thumb` (kiểm quyền bằng StatObject/GetObject của người dùng, khóa cache theo etag) | `src/console/api/docview_thumb.go` |
+| Xem HTML như web thật (`/docview/raw/<bucket>/<key>`, CSP sandbox không script, tài nguyên gốc-tương-đối theo Referer) | `src/console/api/docview_raw.go` (+ route trong `docview_proxy.go`, `configure_console.go`), viewer `.../Preview/DocViewer/HtmlViewer.tsx` |
 | Tạo thumbnail + cache đĩa | `converter/server.py` (Pillow, poppler `pdftoppm`, ffmpeg, LibreOffice) |
 | Proxy `/docview/convert` (cùng origin để qua CSP, yêu cầu đã đăng nhập) | `src/console/api/docview_proxy.go` + 1 dòng route trong `api/configure_console.go` |
 | Gắn Console tùy biến vào MinIO | cuối `src/minio/go.mod` (`replace github.com/minio/console => ../console`) |

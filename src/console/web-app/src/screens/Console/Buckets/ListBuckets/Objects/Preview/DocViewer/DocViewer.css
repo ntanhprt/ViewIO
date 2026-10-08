@@ -519,3 +519,15 @@
 .dv-body > div {
   min-height: 0;
 }
+
+/* HTML hiển thị như trang web thật */
+.dv-htmlframe {
+  flex: 1 1 auto;
+  width: 100%;
+  min-height: 0;
+  border: 0;
+  background: #fff;
+}
+a.dv-btn {
+  text-decoration: none;
+}

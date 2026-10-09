@@ -56,6 +56,14 @@ func registerLoginHandlers(api *operations.ConsoleAPI) {
 		return middleware.ResponderFunc(func(w http.ResponseWriter, p runtime.Producer) {
 			cookie := NewSessionCookieForConsole(loginResponse.SessionID)
 			http.SetCookie(w, &cookie)
+			// ViewIO: ghi nhớ đăng nhập 30 ngày (chỉ khi đăng nhập user/password)
+			remember := expireRememberCookie()
+			if params.HTTPRequest.Header.Get(rememberHeader) == "1" && strings.TrimSpace(params.Body.Sts) == "" {
+				if v, eerr := auth.EncryptRememberCredentials(strings.TrimSpace(params.Body.AccessKey), strings.TrimSpace(params.Body.SecretKey)); eerr == nil {
+					remember = newRememberCookie(v)
+				}
+			}
+			http.SetCookie(w, &remember)
 			authApi.NewLoginNoContent().WriteResponse(w, p)
 		})
 	})

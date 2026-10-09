@@ -205,6 +205,7 @@ export type AllowedPreviews =
   | "video"
   | "markdown"
   | "html"
+  | "drawio"
   | "code"
   | "csv"
   | "excel"
@@ -352,6 +353,10 @@ const extensionPreview = (fileName: string): AllowedPreviews => {
 
   if (fileExtension === "md" || fileExtension === "markdown") {
     return "markdown";
+  }
+
+  if (["drawio", "dio"].includes(fileExtension)) {
+    return "drawio";
   }
 
   if (["html", "htm", "xhtml"].includes(fileExtension)) {

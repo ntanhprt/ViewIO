@@ -343,3 +343,45 @@ func GetClaimsFromTokenInRequest(req *http.Request) (*models.Principal, error) {
 		AccountAccessKey:   claims.AccountAccessKey,
 	}, nil
 }
+
+// ViewIO: dữ liệu cho cookie "ghi nhớ đăng nhập". Mã hoá bằng cùng khoá phiên nhưng có associated
+// data riêng, nên không thể đem cookie này dùng thay cho cookie phiên (và ngược lại).
+var rememberAAD = []byte("viewio-remember")
+
+type rememberClaims struct {
+	AccessKey string `json:"a"`
+	SecretKey string `json:"s"`
+}
+
+// EncryptRememberCredentials mã hoá cặp access/secret key thành chuỗi base64 để đặt vào cookie.
+func EncryptRememberCredentials(accessKey, secretKey string) (string, error) {
+	payload, err := json.Marshal(rememberClaims{AccessKey: accessKey, SecretKey: secretKey})
+	if err != nil {
+		return "", err
+	}
+	ciphertext, err := encrypt(payload, rememberAAD)
+	if err != nil {
+		return "", err
+	}
+	return base64.StdEncoding.EncodeToString(ciphertext), nil
+}
+
+// DecryptRememberCredentials giải mã cookie ghi nhớ đăng nhập.
+func DecryptRememberCredentials(value string) (accessKey, secretKey string, err error) {
+	decoded, err := base64.StdEncoding.DecodeString(value)
+	if err != nil {
+		return "", "", err
+	}
+	plaintext, err := decrypt(decoded, rememberAAD)
+	if err != nil {
+		return "", "", err
+	}
+	var c rememberClaims
+	if err := json.Unmarshal(plaintext, &c); err != nil {
+		return "", "", err
+	}
+	if c.AccessKey == "" || c.SecretKey == "" {
+		return "", "", ErrReadingToken
+	}
+	return c.AccessKey, c.SecretKey, nil
+}

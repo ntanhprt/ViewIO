@@ -32,6 +32,7 @@ import {
   setAccessKey,
   setDisplayEmbeddedIDPForms,
   setSecretKey,
+  setRemember,
   setSTS,
   setUseSTS,
 } from "./loginSlice";
@@ -53,6 +54,7 @@ const StrategyForm = ({ redirectRules }: { redirectRules: RedirectRule[] }) => {
   const secretKey = useSelector((state: AppState) => state.login.secretKey);
   const sts = useSelector((state: AppState) => state.login.sts);
   const useSTS = useSelector((state: AppState) => state.login.useSTS);
+  const remember = useSelector((state: AppState) => state.login.remember);
   const displaySSOForm = useSelector(
     (state: AppState) => state.login.ssoEmbeddedIDPDisplay,
   );
@@ -219,12 +221,36 @@ const StrategyForm = ({ redirectRules }: { redirectRules: RedirectRule[] }) => {
               )}
             </Grid>
 
+            {!useSTS && (
+              <Grid item xs={12} sx={{ marginTop: 16 }}>
+                <label
+                  htmlFor="remember-me"
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 8,
+                    cursor: "pointer",
+                    fontSize: 14,
+                  }}
+                >
+                  <input
+                    type="checkbox"
+                    id="remember-me"
+                    checked={remember}
+                    disabled={loginSending}
+                    onChange={(e) => dispatch(setRemember(e.target.checked))}
+                  />
+                  Ghi nhớ đăng nhập (30 ngày, tự gia hạn mỗi lần vào)
+                </label>
+              </Grid>
+            )}
+
             <Grid
               item
               xs={12}
               sx={{
                 textAlign: "right",
-                marginTop: 30,
+                marginTop: 14,
               }}
             >
               <Button

@@ -23,6 +23,7 @@ interface LoginState {
   secretKey: string;
   sts: string;
   useSTS: boolean;
+  remember: boolean;
   backgroundAnimation: boolean;
   loginStrategy: LoginDetails;
   loginSending: boolean;
@@ -32,11 +33,21 @@ interface LoginState {
   ssoEmbeddedIDPDisplay: boolean;
 }
 
+// ViewIO: "Ghi nhớ đăng nhập" mặc định bật, nhớ lựa chọn lần trước của người dùng
+const loadRemember = (): boolean => {
+  try {
+    return localStorage.getItem("viewio.remember") !== "0";
+  } catch (e) {
+    return true;
+  }
+};
+
 const initialState: LoginState = {
   accessKey: "",
   secretKey: "",
   sts: "",
   useSTS: false,
+  remember: loadRemember(),
   loginStrategy: {
     loginStrategy: undefined,
     redirectRules: [],
@@ -62,6 +73,14 @@ const loginSlice = createSlice({
     setUseSTS: (state, action: PayloadAction<boolean>) => {
       state.useSTS = action.payload;
     },
+    setRemember: (state, action: PayloadAction<boolean>) => {
+      state.remember = action.payload;
+      try {
+        localStorage.setItem("viewio.remember", action.payload ? "1" : "0");
+      } catch (e) {
+        // bỏ qua nếu trình duyệt chặn localStorage
+      }
+    },
     setSTS: (state, action: PayloadAction<string>) => {
       state.sts = action.payload;
     },
@@ -71,7 +90,7 @@ const loginSlice = createSlice({
     setDisplayEmbeddedIDPForms: (state, action: PayloadAction<boolean>) => {
       state.ssoEmbeddedIDPDisplay = action.payload;
     },
-    resetForm: (state) => initialState,
+    resetForm: (state) => ({ ...initialState, remember: state.remember }),
   },
   extraReducers: (builder) => {
     builder
@@ -107,6 +126,7 @@ export const {
   setSecretKey,
   setUseSTS,
   setSTS,
+  setRemember,
   setNavigateTo,
   setDisplayEmbeddedIDPForms,
   resetForm,

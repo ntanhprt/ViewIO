@@ -36,6 +36,7 @@ export const doLoginAsync = createAsyncThunk(
     const secretKey = state.login.secretKey;
     const sts = state.login.sts;
     const useSTS = state.login.useSTS;
+    const remember = state.login.remember && !useSTS;
 
     let payload: LoginRequest = {
       accessKey,
@@ -49,8 +50,9 @@ export const doLoginAsync = createAsyncThunk(
       };
     }
 
+    // Header báo server lưu cookie ghi nhớ 30 ngày (xem api/viewio_remember.go)
     return api.login
-      .login(payload)
+      .login(payload, remember ? { headers: { "X-Viewio-Remember": "1" } } : {})
       .then((res) => {
         const darkModeEnabled = isDarkModeOn(); // If null, then we set the dark mode as disabled per requirement. If configuration al ready set, then we establish this configuration
 

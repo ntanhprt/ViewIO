@@ -51,6 +51,8 @@ func registerLogoutHandlers(api *operations.ConsoleAPI) {
 			// this will tell the browser to clear the cookie and invalidate user session
 			// additionally we are deleting the cookie from the client side
 			http.SetCookie(w, &expiredCookie)
+			expiredRemember := expireRememberCookie()
+			http.SetCookie(w, &expiredRemember)
 			http.SetCookie(w, &http.Cookie{
 				Path:     "/",
 				Name:     "idp-refresh-token",

@@ -373,6 +373,19 @@ func AuthenticationMiddleware(next http.Handler) http.Handler {
 			return
 		}
 		sessionToken, _ := auth.DecryptToken(token)
+		// ViewIO: hết phiên nhưng còn cookie "ghi nhớ đăng nhập" => tự đăng nhập lại; có cookie => gia hạn 30 ngày
+		if rememberApplies(r) {
+			if len(sessionToken) == 0 {
+				if newToken, ok := rememberSession(w, r); ok {
+					if dec, derr := auth.DecryptToken(newToken); derr == nil {
+						sessionToken = dec
+					}
+				}
+			}
+			if len(sessionToken) > 0 {
+				rememberRefresh(w, r)
+			}
+		}
 		// All handlers handle appropriately to return errors
 		// based on their swagger rules, we do not need to
 		// additionally return error here, let the next ServeHTTPs

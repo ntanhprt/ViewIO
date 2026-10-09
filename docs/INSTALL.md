@@ -310,6 +310,19 @@ Các lựa chọn này được nhớ trong trình duyệt.
 - **Script bị tắt** (sandbox, CSP `script-src 'none'`) vì nội dung do người khác tải lên: trang tĩnh (HTML + CSS + ảnh + font) hiển thị đầy đủ, còn trang cần JavaScript (SPA, biểu đồ…) sẽ không chạy. Tài nguyên ngoài (CDN ảnh/CSS/font bằng https) vẫn tải như web thường.
 - Cần quyền đọc file; mọi tài nguyên đi qua quyền của người đang đăng nhập. Nút **Mã nguồn** xem HTML gốc có tô màu cú pháp.
 
+### Xem sơ đồ draw.io
+
+- Double-click file `.drawio` / `.dio` để xem sơ đồ ngay trong viewer: zoom, chuyển trang (tab), bật/tắt layer, toàn màn hình. Bộ xem draw.io đã đóng gói sẵn trong image nên chạy được khi không có Internet. Chỉ xem, không sửa; muốn sửa thì tải file về mở bằng draw.io.
+- Sơ đồ chạy trong khung sandbox cách ly, không truy cập được phiên đăng nhập.
+- CSP mặc định của console đã thêm `img-src 'self' data: blob:` để hiện icon thanh công cụ; nếu bạn tự đặt `MINIO_BROWSER_CONTENT_SECURITY_POLICY` thì hãy thêm đoạn này.
+
+### Ghi nhớ đăng nhập (30 ngày)
+
+- Form đăng nhập có ô **Ghi nhớ đăng nhập** (mặc định bật). Khi bật, server đặt cookie `viewio-remember` (HttpOnly, mã hoá) để tự đăng nhập lại khi phiên hết hạn.
+- Mỗi lần vào ViewIO (có gọi `/api`, `/docview`) cookie được gia hạn thêm 30 ngày: hạn tính từ **lần dùng cuối**. Quá 30 ngày không vào thì phải đăng nhập lại.
+- Đổi mật khẩu/xoá user → tự bị đăng xuất. Bấm Logout → xoá cookie ghi nhớ. Không áp dụng cho đăng nhập STS thủ công và SSO.
+- Khoá mã hoá lấy từ deployment ID của MinIO nên vẫn còn sau khi restart container.
+
 ### Thumbnail (chế độ xem lưới) hoạt động thế nào
 
 - Thumbnail do dịch vụ `converter` tạo và **lưu cache trên đĩa** (volume `converter-cache`, giữ 60 ngày không dùng); trình duyệt cũng cache 24 giờ. File đổi nội dung thì thumbnail tự làm lại.

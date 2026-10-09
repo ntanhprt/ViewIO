@@ -314,7 +314,7 @@ Các lựa chọn này được nhớ trong trình duyệt.
 
 - Double-click file `.drawio` / `.dio` để xem sơ đồ ngay trong viewer: zoom, chuyển trang (tab), bật/tắt layer, toàn màn hình. Bộ xem draw.io đã đóng gói sẵn trong image nên chạy được khi không có Internet. Chỉ xem, không sửa; muốn sửa thì tải file về mở bằng draw.io.
 - Sơ đồ chạy trong khung sandbox cách ly, không truy cập được phiên đăng nhập.
-- CSP mặc định của console đã thêm `img-src 'self' data: blob:` để hiện icon thanh công cụ; nếu bạn tự đặt `MINIO_BROWSER_CONTENT_SECURITY_POLICY` thì hãy thêm đoạn này.
+- CSP mặc định của console đã thêm `img-src 'self' data: blob:` để hiện icon thanh công cụ; MinIO đã lưu CSP cũ thì không tự đổi: hãy đặt biến `MINIO_BROWSER_CONTENT_SECURITY_POLICY` (có sẵn trong docker-compose.yml của repo) cho cả nâng cấp tại chỗ.
 
 ### Ghi nhớ đăng nhập (30 ngày)
 

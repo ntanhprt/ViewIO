@@ -15,6 +15,7 @@ services:
       MINIO_ROOT_PASSWORD: ${VIEWIO_ROOT_PASSWORD:?Thiếu VIEWIO_ROOT_PASSWORD trong .env (chạy ./install.sh)}
       MINIO_BROWSER_REDIRECT_URL: ${VIEWIO_REDIRECT_URL:-}
       DOCVIEW_CONVERTER_URL: ${VIEWIO_CONVERTER_URL:-http://converter:8080}
+      MINIO_BROWSER_CONTENT_SECURITY_POLICY: "default-src 'self' 'unsafe-eval' 'unsafe-inline'; img-src 'self' data: blob:; script-src 'self' https://unpkg.com; connect-src 'self' https://unpkg.com;"  # icon thanh công cụ draw.io
       HOME: /tmp          # user thường không có thư mục home; MinIO cần nơi ghi cấu hình
       TZ: ${TZ:-Asia/Ho_Chi_Minh}
     ports:

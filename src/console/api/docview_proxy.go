@@ -43,6 +43,8 @@ func serveDocview(w http.ResponseWriter, r *http.Request) {
 	switch {
 	case strings.HasPrefix(r.URL.Path, docviewRawPrefix):
 		serveDocviewRaw(w, r)
+	case strings.HasPrefix(r.URL.Path, docviewUploadPrefix):
+		serveDocviewUpload(w, r)
 	case r.URL.Path == "/docview/thumb":
 		serveDocviewThumb(w, r)
 	default:

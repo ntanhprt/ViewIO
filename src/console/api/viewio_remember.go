@@ -118,3 +118,15 @@ func rememberRefresh(w http.ResponseWriter, r *http.Request) {
 func isNetworkLoginError(err error) bool {
 	return xnet.IsNetworkOrHostDown(err, true)
 }
+
+// replaceRequestCookie đặt lại cookie `name` trong request (bỏ bản cũ nếu có).
+func replaceRequestCookie(r *http.Request, name, value string) {
+	cookies := r.Cookies()
+	r.Header.Del("Cookie")
+	for _, c := range cookies {
+		if c.Name != name {
+			r.AddCookie(c)
+		}
+	}
+	r.AddCookie(&http.Cookie{Name: name, Value: value})
+}

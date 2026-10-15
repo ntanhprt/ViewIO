@@ -14,6 +14,7 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+import { ChunkedUpload, CHUNK_THRESHOLD } from "../../../../ObjectBrowser/chunkedUpload";
 import React, {
   Fragment,
   useCallback,
@@ -557,7 +558,12 @@ const ListObjects = () => {
               `${bucketName}-${prefixPath}-${new Date().getTime()}-${Math.random()}`,
             );
 
-            let xhr = new XMLHttpRequest();
+            // ViewIO: file lớn tự cắt thành nhiều phần để không vướng giới hạn ~100 MB/request của Cloudflare
+            const objectKey = prefixPath + fileName;
+            let xhr: any =
+              !anonymousMode && file.size > CHUNK_THRESHOLD
+                ? new ChunkedUpload(blobFile, bucketName, objectKey, file.type)
+                : new XMLHttpRequest();
             xhr.open("POST", uploadUrl, true);
             if (anonymousMode) {
               xhr.setRequestHeader("X-Anonymous", "1");

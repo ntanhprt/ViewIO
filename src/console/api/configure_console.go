@@ -379,6 +379,8 @@ func AuthenticationMiddleware(next http.Handler) http.Handler {
 				if newToken, ok := rememberSession(w, r); ok {
 					if dec, derr := auth.DecryptToken(newToken); derr == nil {
 						sessionToken = dec
+						// các handler đọc thẳng cookie (/docview/*) cũng thấy phiên mới
+						replaceRequestCookie(r, "token", newToken)
 					}
 				}
 			}

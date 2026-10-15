@@ -323,6 +323,16 @@ Các lựa chọn này được nhớ trong trình duyệt.
 - Đổi mật khẩu/xoá user → tự bị đăng xuất. Bấm Logout → xoá cookie ghi nhớ. Không áp dụng cho đăng nhập STS thủ công và SSO.
 - Khoá mã hoá lấy từ deployment ID của MinIO nên vẫn còn sau khi restart container.
 
+### Upload file lớn (tự cắt nhỏ)
+
+- Trên giao diện web, file **lớn hơn 64 MB** được trình duyệt tự cắt thành các phần 32 MB, gửi lần lượt (thử lại tối đa 3 lần mỗi phần), server ghép lại bằng S3 multipart. Nhờ vậy upload không vướng giới hạn ~100 MB/request của Cloudflare (hoặc proxy khác), kích thước tối đa mỗi file khoảng 320 GB. Hủy upload sẽ dọn các phần đã gửi. File nhỏ vẫn đi đường upload cũ.
+- Đường API: `/docview/upload/{init,part,complete,abort}` (cần đăng nhập, dùng đúng quyền người dùng).
+- Công cụ S3 (boto3 `upload_file`, `mc cp`, `aws s3 cp`) tự chia phần sẵn; chỉ tránh `put_object` một lần với file > 100 MB khi đi qua Cloudflare.
+
+### Link chia sẻ ra Internet (`VIEWIO_REDIRECT_URL`)
+
+Đặt `VIEWIO_REDIRECT_URL` (compose: `MINIO_BROWSER_REDIRECT_URL`) thành địa chỉ công khai, ví dụ `https://minio.aisolutions.vn`, để link chia sẻ file mở được từ ngoài. Người trong LAN bấm link đó cũng đi qua địa chỉ công khai.
+
 ### Thumbnail (chế độ xem lưới) hoạt động thế nào
 
 - Thumbnail do dịch vụ `converter` tạo và **lưu cache trên đĩa** (volume `converter-cache`, giữ 60 ngày không dùng); trình duyệt cũng cache 24 giờ. File đổi nội dung thì thumbnail tự làm lại.

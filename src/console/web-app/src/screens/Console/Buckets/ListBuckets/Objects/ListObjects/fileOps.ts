@@ -291,3 +291,27 @@ export const saveText = async (
   }
   return data;
 };
+
+// ---- Soạn thảo Word/Excel/PowerPoint bằng ONLYOFFICE (xem api/docview_office.go) ----
+export const OFFICE_EDIT_EXT = ["docx", "xlsx", "pptx", "odt", "ods", "odp"];
+export const canOfficeEdit = (name: string) =>
+  OFFICE_EDIT_EXT.includes((name.split(".").pop() || "").toLowerCase());
+
+let officeFlag: Promise<boolean> | null = null;
+export const officeEnabled = (): Promise<boolean> => {
+  if (!officeFlag) {
+    officeFlag = fetch(`${window.location.origin}${base()}docview/office/status`, {
+      credentials: "same-origin",
+    })
+      .then((r) => (r.ok ? r.json() : { enabled: false }))
+      .then((d) => !!d.enabled)
+      .catch(() => false);
+  }
+  return officeFlag;
+};
+
+export const officeEditorUrl = (bucket: string, key: string) =>
+  `${window.location.origin}${base()}docview/office/editor?${new URLSearchParams({ bucket, key }).toString()}`;
+
+export const newOfficeDoc = (bucket: string, key: string) =>
+  postJson("newdoc", { bucket, key });

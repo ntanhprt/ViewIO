@@ -17,7 +17,10 @@ import {
   getClipboard,
   getUndo,
   isFavorite,
+  canOfficeEdit,
   mkdir,
+  newOfficeDoc,
+  officeEnabled,
   setClipboard,
   setUndo,
   toggleFavorite,
@@ -33,6 +36,7 @@ import {
   SearchDialog,
   TrashDialog,
 } from "./FileOpsDialogs";
+import OfficeEditorOverlay from "./OfficeEditorOverlay";
 import "./ObjectContextMenu.css";
 
 interface IProps {
@@ -58,6 +62,8 @@ type Dialog =
   | { t: "picker"; mode: Mode; items: string[] }
   | { t: "rename"; key: string }
   | { t: "new"; dir: boolean }
+  | { t: "newoffice"; ext: "docx" | "xlsx" | "pptx" }
+  | { t: "office"; key: string }
   | { t: "search" }
   | { t: "trash" }
   | { t: "info"; key: string }
@@ -90,6 +96,10 @@ const ObjectContextMenu = ({
   const [busy, setBusy] = useState<string | null>(null);
   const [problem, setProblem] = useState<string[] | null>(null);
   const [, bump] = useState(0);
+  const [office, setOffice] = useState(false);
+  useEffect(() => {
+    officeEnabled().then(setOffice);
+  }, []);
 
   useEffect(() => {
     const f = () => bump((n) => n + 1);
@@ -396,6 +406,9 @@ const ObjectContextMenu = ({
     const inTrash = items.some((i) => i.startsWith(".trash/"));
     if (single) {
       entries.push({ label: singleIsDir ? "Mở thư mục" : "Mở / xem", act: () => onOpen(single) });
+      if (office && !singleIsDir && canOfficeEdit(single)) {
+        entries.push({ label: "Sửa (Office)", act: () => setDialog({ t: "office", key: single }) });
+      }
     }
     if (items.length > 0) {
       entries.push({
@@ -434,6 +447,11 @@ const ObjectContextMenu = ({
     } else {
       entries.push({ label: "Thư mục mới", sep: true, act: () => setDialog({ t: "new", dir: true }) });
       entries.push({ label: "File văn bản mới", act: () => setDialog({ t: "new", dir: false }) });
+      if (office) {
+        entries.push({ label: "Tài liệu Word mới", act: () => setDialog({ t: "newoffice", ext: "docx" }) });
+        entries.push({ label: "Bảng tính Excel mới", act: () => setDialog({ t: "newoffice", ext: "xlsx" }) });
+        entries.push({ label: "Bài trình chiếu PowerPoint mới", act: () => setDialog({ t: "newoffice", ext: "pptx" }) });
+      }
       entries.push({
         label: undo ? `Hoàn tác ${undo.label}` : "Hoàn tác",
         hint: "Ctrl+Z",
@@ -454,6 +472,19 @@ const ObjectContextMenu = ({
       await mkdir(bucketName, currentPrefix + name + (dir ? "/" : ""));
       notify(dir ? "Đã tạo thư mục" : "Đã tạo file");
       dispatch(setReloadObjectsList(true));
+    } catch (e: any) {
+      setProblem([e?.message || String(e)]);
+    }
+  };
+
+  const createOffice = async (name: string, ext: string) => {
+    setDialog(null);
+    const file = name.toLowerCase().endsWith("." + ext) ? name : `${name}.${ext}`;
+    const key = currentPrefix + file;
+    try {
+      await newOfficeDoc(bucketName, key);
+      dispatch(setReloadObjectsList(true));
+      setDialog({ t: "office", key });
     } catch (e: any) {
       setProblem([e?.message || String(e)]);
     }
@@ -540,6 +571,27 @@ const ObjectContextMenu = ({
           isDir={dialog.dir}
           onCancel={() => setDialog(null)}
           onOk={(n) => createNew(n, dialog.dir)}
+        />
+      ) : null}
+      {dialog?.t === "newoffice" ? (
+        <NameDialog
+          title={{ docx: "Tài liệu Word mới", xlsx: "Bảng tính Excel mới", pptx: "Bài trình chiếu mới" }[dialog.ext]}
+          initial={{ docx: "Tài liệu mới.docx", xlsx: "Bảng tính mới.xlsx", pptx: "Bài trình chiếu mới.pptx" }[dialog.ext]}
+          okLabel="Tạo và mở"
+          isDir={false}
+          onCancel={() => setDialog(null)}
+          onOk={(n) => createOffice(n, dialog.ext)}
+        />
+      ) : null}
+      {dialog?.t === "office" ? (
+        <OfficeEditorOverlay
+          bucket={bucketName}
+          objectKey={dialog.key}
+          onClose={() => {
+            setDialog(null);
+            // Document Server ghi về kho sau khi đóng vài giây: làm mới danh sách vài lần
+            [3000, 8000, 15000].forEach((ms) => setTimeout(() => dispatch(setReloadObjectsList(true)), ms));
+          }}
         />
       ) : null}
       {dialog?.t === "search" ? (

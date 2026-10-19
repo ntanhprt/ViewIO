@@ -32,6 +32,8 @@ import OfficeViewer from "./DocViewer/OfficeViewer";
 import HtmlViewer from "./DocViewer/HtmlViewer";
 import DrawioViewer from "./DocViewer/DrawioViewer";
 import TextEditor from "./DocViewer/TextEditor";
+import OfficeEditorOverlay from "../ListObjects/OfficeEditorOverlay";
+import { canOfficeEdit, info as fsInfo, officeEnabled } from "../ListObjects/fileOps";
 import { useSelector } from "react-redux";
 import { AppState } from "../../../../../../store";
 
@@ -63,10 +65,17 @@ const PreviewFile = ({ bucketName, actualInfo, onResolved }: IPreviewFileProps) 
   const [metaData, setMetaData] = useState<any>(null);
   const [isMetaDataLoaded, setIsMetaDataLoaded] = useState(false);
   const [editing, setEditing] = useState(false);
+  const [officeOn, setOfficeOn] = useState(false);
+  const [officeEditing, setOfficeEditing] = useState(false);
+  const [officeEtag, setOfficeEtag] = useState("");
   const [rev, setRev] = useState(0); // tăng sau khi lưu để các viewer đọc lại nội dung mới
   const anonymousMode = useSelector(
     (state: AppState) => state.system.anonymousMode,
   );
+
+  useEffect(() => {
+    officeEnabled().then(setOfficeOn);
+  }, []);
 
   const objectName = actualInfo?.name || "";
   const fileName = objectName.split("/").pop() || objectName;
@@ -111,6 +120,12 @@ const PreviewFile = ({ bucketName, actualInfo, onResolved }: IPreviewFileProps) 
     ["code", "markdown", "csv", "html", "drawio"].includes(objectType) &&
     (actualInfo as any)?.is_latest !== false &&
     (actualInfo?.size ? Number(actualInfo.size) : 0) <= 5 * 1024 * 1024;
+  const officeEditable =
+    officeOn &&
+    !anonymousMode &&
+    ["docx", "excel", "office"].includes(objectType) &&
+    canOfficeEdit(objectName) &&
+    (actualInfo as any)?.is_latest !== false;
   const latestPath = `${window.location.origin}${document.baseURI.replace(window.location.origin, "")}api/v1/buckets/${encodeURIComponent(bucketName)}/objects/download?preview=true&prefix=${encodeURIComponent(objectName)}`;
   const size = actualInfo?.size ? Number(actualInfo.size) : undefined;
 
@@ -130,6 +145,33 @@ const PreviewFile = ({ bucketName, actualInfo, onResolved }: IPreviewFileProps) 
 
   if (!isMetaDataLoaded) {
     return <Loading />;
+  }
+
+  // đóng trình soạn thảo Office: Document Server ghi về kho sau vài giây, nên đợi etag đổi rồi nạp lại viewer
+  const closeOffice = async () => {
+    setOfficeEditing(false);
+    const before = officeEtag;
+    for (let i = 0; i < 20; i++) {
+      await new Promise((r) => setTimeout(r, 2000));
+      try {
+        if ((await fsInfo(bucketName, objectName)).etag !== before) {
+          setRev((n) => n + 1);
+          return;
+        }
+      } catch {
+        return;
+      }
+    }
+  };
+
+  if (officeEditing) {
+    return (
+      <OfficeEditorOverlay
+        bucket={bucketName}
+        objectKey={objectName}
+        onClose={closeOffice}
+      />
+    );
   }
 
   if (editing) {
@@ -152,6 +194,23 @@ const PreviewFile = ({ bucketName, actualInfo, onResolved }: IPreviewFileProps) 
 
   return (
     <Fragment key={rev}>
+      {officeEditable && (
+        <button
+          type="button"
+          className="dv-edit-trigger"
+          onClick={async () => {
+            try {
+              setOfficeEtag((await fsInfo(bucketName, objectName)).etag || "");
+            } catch {
+              setOfficeEtag("");
+            }
+            setOfficeEditing(true);
+          }}
+          title="Sửa bằng ONLYOFFICE (giữ nguyên định dạng)"
+        >
+          ✎ Sửa (Office)
+        </button>
+      )}
       {editable && (
         <button
           type="button"

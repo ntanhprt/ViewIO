@@ -511,3 +511,23 @@ Mở file Markdown, text, code, CSV, HTML hoặc draw.io (dạng XML) rồi bấ
 - Lưu qua `PUT /docview/fs/save` kèm ETag lúc mở: nếu người khác đã sửa trước, ViewIO báo xung đột và hỏi có ghi đè không (không ghi đè âm thầm).
 - Nên bật **versioning** cho bucket để mỗi lần lưu giữ bản cũ: `mc version enable <alias>/<bucket>` (đã bật cho proton01–10). Bản cũ xem/khôi phục ở panel phiên bản của file. Versioning làm tốn thêm dung lượng; "Xoá vĩnh viễn" trong Thùng rác dọn cả các bản cũ của file đã xoá.
 - Word/Excel/PowerPoint chưa sửa được tại chỗ (cần máy chủ soạn thảo Office riêng, ví dụ ONLYOFFICE).
+
+## Sửa Word / Excel / PowerPoint bằng ONLYOFFICE (1.7.0)
+
+ViewIO nhúng ONLYOFFICE Document Server (container riêng). Mở file .docx/.xlsx/.pptx (và .odt/.ods/.odp) rồi bấm **✎ Sửa (Office)**, hoặc chuột phải vào chỗ trống → "Tài liệu Word / Bảng tính Excel / Bài trình chiếu mới".
+
+Cấu hình (biến môi trường của container ViewIO; để trống `VIEWIO_OFFICE_URL` = tắt tính năng):
+
+| Biến | Ý nghĩa |
+|---|---|
+| `VIEWIO_OFFICE_URL` | Địa chỉ công khai của Document Server cho trình duyệt, vd `https://office.example.com` |
+| `VIEWIO_OFFICE_INTERNAL_URL` | ViewIO → Document Server trong mạng docker, vd `http://viewio-office` |
+| `VIEWIO_OFFICE_CALLBACK_URL` | Document Server → ViewIO trong mạng docker, vd `http://minio:9001` |
+| `VIEWIO_OFFICE_JWT_SECRET` | Khoá JWT chung với Document Server (`JWT_SECRET`), bắt buộc |
+| `VIEWIO_OFFICE_LAN_PORT` | Cổng Document Server khi vào ViewIO bằng IP/LAN (mặc định 21040) |
+
+Service mẫu trong `docker-compose.yml` (profile `office`): `onlyoffice/documentserver:8.2.3`, `JWT_ENABLED=true`, `ALLOW_PRIVATE_IP_ADDRESS=true`, cần ~4 GB RAM. Document Server cần tên miền/cổng mà trình duyệt vào được (có WebSocket).
+
+Cách hoạt động: ViewIO cấp file cho Document Server bằng URL có token ký (HS256, hạn 24 giờ, đúng quyền của người đang sửa) và nhận bản sửa qua callback, rồi ghi về kho bằng chính quyền của người đó. Bucket bật versioning thì giữ bản cũ. Nhiều người mở cùng file sẽ cùng một phiên đồng soạn thảo. Nếu file trong kho bị đổi từ nơi khác giữa chừng, bản sửa được lưu thành "tên (bản sửa xung đột …).docx" bên cạnh, không ghi đè.
+
+Giấy phép: ONLYOFFICE Docs Community là AGPL, giới hạn ~20 kết nối soạn thảo đồng thời; vượt thì cần bản Enterprise.

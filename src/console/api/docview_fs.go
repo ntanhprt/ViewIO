@@ -95,6 +95,8 @@ func serveDocviewFs(w http.ResponseWriter, r *http.Request) {
 		fsTransfer(w, r, client)
 	case action == "mkdir" && r.Method == http.MethodPost:
 		fsMkdir(w, r, client)
+	case action == "newdoc" && r.Method == http.MethodPost:
+		fsNewDoc(w, r, client)
 	case action == "purge" && r.Method == http.MethodPost:
 		fsPurge(w, r, client)
 	case action == "search" && r.Method == http.MethodGet:

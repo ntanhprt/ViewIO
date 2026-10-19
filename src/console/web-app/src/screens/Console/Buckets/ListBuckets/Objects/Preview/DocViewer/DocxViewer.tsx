@@ -29,6 +29,23 @@ const DocxViewer = ({ path, onDownload }: IDocxViewerProps) => {
   const host = useRef<HTMLDivElement | null>(null);
   const [rendered, setRendered] = useState(false);
   const [renderError, setRenderError] = useState("");
+  // Bảng trong Word có độ rộng cố định, hay tràn ra ngoài lề trang: mặc định ép vừa khít, có thể xem nguyên bản
+  const [fit, setFit] = useState(() => {
+    try {
+      return localStorage.getItem("viewio.docxFit") !== "0";
+    } catch {
+      return true;
+    }
+  });
+  const toggleFit = () => {
+    const next = !fit;
+    setFit(next);
+    try {
+      localStorage.setItem("viewio.docxFit", next ? "1" : "0");
+    } catch {
+      // bỏ qua
+    }
+  };
 
   useEffect(() => {
     if (!blob || !host.current) {
@@ -58,9 +75,19 @@ const DocxViewer = ({ path, onDownload }: IDocxViewerProps) => {
 
   return (
     <div className="dv-scroll">
+      {rendered ? (
+        <button
+          type="button"
+          className="dv-docx-toggle"
+          onClick={toggleFit}
+          title="Bảng rộng hơn trang: ép vừa khít, hoặc xem nguyên bản và cuộn ngang"
+        >
+          {fit ? "Bảng: vừa khít" : "Bảng: nguyên bản"}
+        </button>
+      ) : null}
       {loading || !rendered ? <Loading text="Đang dựng tài liệu..." /> : null}
       <div
-        className="dv-docx"
+        className={`dv-docx ${fit ? "dv-docx-fit" : "dv-docx-raw"}`}
         ref={host}
         style={{ display: rendered ? "block" : "none" }}
       />

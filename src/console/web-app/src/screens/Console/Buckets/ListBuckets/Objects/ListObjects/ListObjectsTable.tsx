@@ -28,7 +28,8 @@ import {
   setSelectedObjectView,
   setSelectedPreview,
 } from "../../../../ObjectBrowser/objectBrowserSlice";
-import { useNavigate, useParams } from "react-router-dom";
+import { useLocation, useNavigate, useParams } from "react-router-dom";
+import ObjectContextMenu from "./ObjectContextMenu";
 import get from "lodash/get";
 import { sortListObjects } from "../utils";
 import { BucketObjectItem } from "./types";
@@ -51,6 +52,7 @@ const ListObjectsTable = () => {
   const dispatch = useAppDispatch();
   const params = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
 
   // Chế độ xem + sắp xếp dùng chung với thanh công cụ (ViewIO)
   const view = useViewState();
@@ -286,8 +288,60 @@ const ListObjectsTable = () => {
     customPaperHeight = focusHeight;
   }
 
+  // Menu chuột phải / Ctrl+C,X,V / F2 (ViewIO): xác định mục dưới con trỏ ở cả chế độ bảng lẫn thumbnail
+  const bucketPath = `/browser/${bucketName}/`;
+  const pathSegment = location.pathname.split(bucketPath);
+  const currentPrefix =
+    pathSegment.length === 2 ? decodeURIComponent(pathSegment[1]) : "";
+  const itemFromTarget = (target: HTMLElement): string | undefined => {
+    const card = target.closest("[data-vt-name]") as HTMLElement | null;
+    if (card) {
+      return card.dataset.vtName;
+    }
+    return rowObject(target)?.name;
+  };
+  const withMenu = (inner: React.ReactNode) =>
+    anonymousMode || rewindEnabled ? (
+      <>{inner}</>
+    ) : (
+      <ObjectContextMenu
+        bucketName={bucketName}
+        currentPrefix={currentPrefix}
+        selected={selectedObjects}
+        itemFromTarget={itemFromTarget}
+        onSelect={(names) => {
+          dispatch(setSelectedObjects(names));
+          dispatch(setSelectedObjectView(null));
+        }}
+        onOpen={(name) => {
+          const obj = payload.find((o) => o.name === name);
+          if (!obj) {
+            return;
+          }
+          if (name.endsWith("/")) {
+            openPath(obj as unknown as BucketObject);
+          } else {
+            previewItem(obj);
+          }
+        }}
+        onDownload={(name) => {
+          const obj = payload.find((o) => o.name === name);
+          if (obj) {
+            downloadObject(
+              dispatch,
+              bucketName,
+              name,
+              obj as unknown as BucketObject,
+            );
+          }
+        }}
+      >
+        {inner}
+      </ObjectContextMenu>
+    );
+
   if (view.mode === "thumb" && !rewindEnabled) {
-    return (
+    return withMenu(
       <ThumbnailGrid
         bucketName={bucketName}
         items={payload}
@@ -300,11 +354,11 @@ const ListObjectsTable = () => {
         onToggle={toggleItem}
         onOpen={(item) => openPath(item as unknown as BucketObject)}
         onPreview={previewItem}
-      />
+      />,
     );
   }
 
-  return (
+  return withMenu(
     <div
       ref={tableWrapRef}
       onClickCapture={rememberFirstClick}
@@ -339,7 +393,7 @@ const ListObjectsTable = () => {
         }}
         noBackground
       />
-    </div>
+    </div>,
   );
 };
 export default ListObjectsTable;

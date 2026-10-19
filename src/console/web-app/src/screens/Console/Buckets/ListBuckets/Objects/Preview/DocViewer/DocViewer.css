@@ -479,6 +479,47 @@
   box-shadow: 0 1px 6px rgba(0, 0, 0, 0.25) !important;
 }
 
+/* Word: bảng tràn lề trang */
+.dv-docx-fit .docx-wrapper > section.docx {
+  overflow: hidden;
+}
+.dv-docx-fit table {
+  width: 100% !important;
+  max-width: 100% !important;
+  table-layout: auto !important;
+}
+.dv-docx-fit col,
+.dv-docx-fit td,
+.dv-docx-fit th {
+  width: auto !important;
+  min-width: 0 !important;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+.dv-docx-raw .docx-wrapper > section.docx {
+  overflow: visible;
+}
+.dv-docx-raw .docx-wrapper {
+  align-items: flex-start !important;
+}
+.dv-docx-toggle {
+  position: sticky;
+  top: 8px;
+  float: right;
+  margin: 8px 14px 0 0;
+  z-index: 5;
+  padding: 4px 10px;
+  font-size: 12px;
+  border-radius: 6px;
+  border: 1px solid rgba(128, 128, 128, 0.5);
+  background: rgba(128, 128, 128, 0.25);
+  color: inherit;
+  cursor: pointer;
+}
+.dv-docx-toggle:hover {
+  background: rgba(128, 128, 128, 0.45);
+}
+
 /* media */
 .dv-media {
   flex: 1 1 auto;

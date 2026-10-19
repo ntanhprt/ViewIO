@@ -1,0 +1,179 @@
+/* ViewIO: menu chuột phải + hộp thoại; dùng màu nền theo nền trang nên hợp cả sáng và tối */
+.vio-menu {
+  position: fixed;
+  z-index: 3000;
+  min-width: 210px;
+  padding: 4px;
+  border-radius: 8px;
+  border: 1px solid rgba(128, 128, 128, 0.45);
+  background: Canvas;
+  color: CanvasText;
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.35);
+  font-size: 13px;
+}
+.vio-menu-title {
+  padding: 4px 10px;
+  font-size: 11px;
+  opacity: 0.65;
+}
+.vio-menu-sep {
+  height: 1px;
+  margin: 4px 6px;
+  background: rgba(128, 128, 128, 0.35);
+}
+.vio-menu-item {
+  display: flex;
+  justify-content: space-between;
+  gap: 24px;
+  width: 100%;
+  padding: 6px 10px;
+  border: 0;
+  border-radius: 5px;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.vio-menu-item:hover:not(:disabled) {
+  background: rgba(37, 99, 235, 0.28);
+}
+.vio-menu-item:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+.vio-menu-hint {
+  opacity: 0.55;
+  font-size: 12px;
+}
+.vio-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 3100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.45);
+}
+.vio-dialog {
+  width: min(440px, calc(100vw - 32px));
+  padding: 16px 18px;
+  border-radius: 10px;
+  border: 1px solid rgba(128, 128, 128, 0.45);
+  background: Canvas;
+  color: CanvasText;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.45);
+  font-size: 13px;
+}
+.vio-dialog h3 {
+  margin: 0 0 12px;
+  font-size: 15px;
+}
+.vio-busy {
+  text-align: center;
+  width: auto;
+  min-width: 220px;
+}
+.vio-input {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 7px 9px;
+  border-radius: 6px;
+  border: 1px solid rgba(128, 128, 128, 0.6);
+  background: transparent;
+  color: inherit;
+  font: inherit;
+}
+.vio-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 14px;
+}
+.vio-btn {
+  padding: 6px 14px;
+  border-radius: 6px;
+  border: 1px solid rgba(128, 128, 128, 0.6);
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+.vio-btn:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+.vio-primary {
+  background: #2563eb;
+  border-color: #2563eb;
+  color: #fff;
+}
+.vio-warn {
+  margin-top: 6px;
+  color: #e5484d;
+}
+.vio-muted {
+  padding: 6px 4px;
+  opacity: 0.6;
+}
+.vio-errlist {
+  max-height: 260px;
+  overflow: auto;
+  word-break: break-all;
+}
+.vio-errlist > div {
+  padding: 3px 0;
+}
+.vio-picker {
+  width: min(520px, calc(100vw - 32px));
+}
+.vio-crumbs {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 2px;
+  margin-bottom: 8px;
+}
+.vio-bucket {
+  width: auto;
+  margin-right: 6px;
+}
+.vio-crumb {
+  padding: 2px 5px;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+.vio-crumb:hover {
+  background: rgba(128, 128, 128, 0.25);
+}
+.vio-folders {
+  height: 240px;
+  overflow: auto;
+  padding: 4px;
+  border-radius: 6px;
+  border: 1px solid rgba(128, 128, 128, 0.4);
+  margin-bottom: 8px;
+}
+.vio-folder {
+  display: block;
+  width: 100%;
+  padding: 6px 8px;
+  border: 0;
+  border-radius: 5px;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.vio-folder:hover:not(:disabled) {
+  background: rgba(37, 99, 235, 0.25);
+}
+.vio-folder:disabled {
+  opacity: 0.4;
+  cursor: default;
+}

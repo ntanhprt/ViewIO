@@ -80,9 +80,28 @@ const DocxViewer = ({ path, onDownload }: IDocxViewerProps) => {
           type="button"
           className="dv-docx-toggle"
           onClick={toggleFit}
-          title="Bảng rộng hơn trang: ép vừa khít, hoặc xem nguyên bản và cuộn ngang"
+          title={
+            fit
+              ? "Bảng đang ép vừa khít trang. Bấm để xem nguyên bản (cuộn ngang)"
+              : "Bảng đang ở nguyên bản. Bấm để ép vừa khít trang"
+          }
+          aria-label="Chế độ hiển thị bảng"
         >
-          {fit ? "Bảng: vừa khít" : "Bảng: nguyên bản"}
+          {fit ? (
+            // vừa khít: hai mũi tên thu vào
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M4 12h6M7 9l3 3-3 3" />
+              <path d="M20 12h-6M17 9l-3 3 3 3" />
+              <path d="M3 5v14M21 5v14" />
+            </svg>
+          ) : (
+            // nguyên bản: bảng + mũi tên hai đầu
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <rect x="3" y="5" width="18" height="9" rx="1" />
+              <path d="M3 9.5h18M9 5v9M15 5v9" />
+              <path d="M5 19h14M8 16.5L5 19l3 2.5M16 16.5l3 2.5-3 2.5" />
+            </svg>
+          )}
         </button>
       ) : null}
       {loading || !rendered ? <Loading text="Đang dựng tài liệu..." /> : null}

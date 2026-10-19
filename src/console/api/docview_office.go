@@ -286,6 +286,7 @@ func officeEditor(w http.ResponseWriter, r *http.Request, c officeConfig) {
 			"user":        map[string]interface{}{"id": uid, "name": uid},
 			"customization": map[string]interface{}{
 				"autosave": true, "forcesave": true, "compactHeader": true, "uiTheme": "default-light",
+				"spellcheck": false, // tắt gạch đỏ kiểm tra chính tả (không có từ điển tiếng Việt)
 			},
 		},
 	}

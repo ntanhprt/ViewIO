@@ -524,7 +524,7 @@ Cấu hình (biến môi trường của container ViewIO; để trống `VIEWIO
 | `VIEWIO_OFFICE_INTERNAL_URL` | ViewIO → Document Server trong mạng docker, vd `http://viewio-office` |
 | `VIEWIO_OFFICE_CALLBACK_URL` | Document Server → ViewIO trong mạng docker, vd `http://minio:9001` |
 | `VIEWIO_OFFICE_JWT_SECRET` | Khoá JWT chung với Document Server (`JWT_SECRET`), bắt buộc |
-| `VIEWIO_OFFICE_LAN_PORT` | Cổng Document Server khi vào ViewIO bằng IP/LAN (mặc định 21040) |
+| `VIEWIO_OFFICE_LAN_PORT` | Cổng Document Server khi vào ViewIO bằng IP/LAN (mặc định 21032) |
 
 Service mẫu trong `docker-compose.yml` (profile `office`): `onlyoffice/documentserver:8.2.3`, `JWT_ENABLED=true`, `ALLOW_PRIVATE_IP_ADDRESS=true`, cần ~4 GB RAM. Document Server cần tên miền/cổng mà trình duyệt vào được (có WebSocket).
 

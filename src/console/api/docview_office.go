@@ -58,7 +58,7 @@ import (
 //	VIEWIO_OFFICE_INTERNAL_URL  địa chỉ Document Server mà ViewIO với tới trong mạng docker (vd http://viewio-office)
 //	VIEWIO_OFFICE_CALLBACK_URL  địa chỉ ViewIO mà Document Server với tới trong mạng docker (vd http://minio:9001)
 //	VIEWIO_OFFICE_JWT_SECRET    khoá JWT chung với Document Server (JWT_SECRET)
-//	VIEWIO_OFFICE_LAN_PORT      cổng Document Server khi truy cập qua LAN/IP (mặc định 21040)
+//	VIEWIO_OFFICE_LAN_PORT      cổng Document Server khi truy cập qua LAN/IP (mặc định 21032)
 //
 // Khoá tài liệu (document key) gắn với (bucket, key, etag lúc mở) và được giữ chung trong lúc còn người đang sửa, nên
 // nhiều người mở cùng file sẽ cùng một phiên đồng soạn thảo. Nếu file trong kho bị đổi từ nơi khác (upload...) giữa
@@ -82,7 +82,7 @@ func officeConf() (officeConfig, bool) {
 		lanPort:  os.Getenv("VIEWIO_OFFICE_LAN_PORT"),
 	}
 	if c.lanPort == "" {
-		c.lanPort = "21040"
+		c.lanPort = "21032"
 	}
 	return c, c.pub != "" && c.internal != "" && c.callback != "" && c.secret != ""
 }

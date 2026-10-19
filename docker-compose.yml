@@ -14,6 +14,11 @@ services:
       MINIO_ROOT_USER: ${VIEWIO_ROOT_USER:?Thiếu VIEWIO_ROOT_USER trong .env (chạy ./install.sh)}
       MINIO_ROOT_PASSWORD: ${VIEWIO_ROOT_PASSWORD:?Thiếu VIEWIO_ROOT_PASSWORD trong .env (chạy ./install.sh)}
       MINIO_BROWSER_REDIRECT_URL: ${VIEWIO_REDIRECT_URL:-}
+      # Sửa Office bằng ONLYOFFICE: đặt VIEWIO_OFFICE_URL + VIEWIO_OFFICE_JWT_SECRET và chạy `--profile office` (xem docs/INSTALL.md)
+      VIEWIO_OFFICE_URL: ${VIEWIO_OFFICE_URL:-}
+      VIEWIO_OFFICE_INTERNAL_URL: http://viewio-office
+      VIEWIO_OFFICE_CALLBACK_URL: http://minio:9001
+      VIEWIO_OFFICE_JWT_SECRET: ${VIEWIO_OFFICE_JWT_SECRET:-}
       DOCVIEW_CONVERTER_URL: ${VIEWIO_CONVERTER_URL:-http://converter:8080}
       MINIO_BROWSER_CONTENT_SECURITY_POLICY: "default-src 'self' 'unsafe-eval' 'unsafe-inline'; img-src 'self' data: blob:; script-src 'self' https://unpkg.com; connect-src 'self' https://unpkg.com;"  # icon thanh công cụ draw.io
       HOME: /tmp          # user thường không có thư mục home; MinIO cần nơi ghi cấu hình
@@ -59,5 +64,25 @@ services:
         max-size: "10m"
         max-file: "3"
 
+  viewio-office:
+    profiles: ["office"]
+    image: ${OFFICE_IMAGE:-onlyoffice/documentserver:8.2.3}
+    container_name: viewio-office
+    restart: unless-stopped
+    environment:
+      JWT_ENABLED: "true"
+      JWT_SECRET: ${VIEWIO_OFFICE_JWT_SECRET:-}
+      JWT_HEADER: Authorization
+      ALLOW_PRIVATE_IP_ADDRESS: "true"
+      ALLOW_META_IP_ADDRESS: "true"
+    ports:
+      - "${OFFICE_PORT:-21032}:80"
+    volumes:
+      - office-lib:/var/lib/onlyoffice
+      - office-log:/var/log/onlyoffice
+    mem_limit: 8g
+
 volumes:
+  office-lib:
+  office-log:
   converter-cache:

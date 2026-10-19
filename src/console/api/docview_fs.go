@@ -101,6 +101,8 @@ func serveDocviewFs(w http.ResponseWriter, r *http.Request) {
 		fsSearch(w, r, client)
 	case action == "info" && r.Method == http.MethodGet:
 		fsInfo(w, r, client)
+	case action == "save" && r.Method == http.MethodPut:
+		fsSave(w, r, client)
 	case action == "zip" && r.Method == http.MethodGet:
 		fsZip(w, r, client)
 	default:

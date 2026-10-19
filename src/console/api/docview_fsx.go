@@ -38,6 +38,7 @@ import (
 //	POST /docview/fs/purge    {bucket,items}    xoá vĩnh viễn — CHỈ cho phép mục nằm trong .trash/
 //	GET  /docview/fs/search   ?bucket&prefix&q&type&days&limit   tìm đệ quy theo tên file
 //	GET  /docview/fs/info     ?bucket&key       thuộc tính file / thư mục (đếm file, tổng dung lượng)
+//	PUT  /docview/fs/save     ?bucket&key&etag  body = nội dung mới (text); 409 nếu etag không còn khớp (người khác đã sửa)
 //	GET  /docview/fs/zip      ?bucket&key=..&key=..&name=       tải nhiều mục/thư mục thành .zip (stream)
 
 type fsReq struct {
@@ -88,29 +89,58 @@ func fsPurge(w http.ResponseWriter, r *http.Request, c *minio.Client) {
 	}
 	ctx := r.Context()
 	deleted, failed := 0, []string{}
+	origs := map[string]bool{}
 	for _, item := range req.Items {
 		item = strings.TrimLeft(item, "/")
 		if !strings.HasPrefix(item, fsTrashPrefix) {
 			fsBadRequest(w, "chỉ được xoá vĩnh viễn mục trong thùng rác")
 			return
 		}
-		keys := []string{item}
-		if strings.HasSuffix(item, "/") {
-			keys = keys[:0]
-			for o := range c.ListObjects(ctx, req.Bucket, minio.ListObjectsOptions{Prefix: item, Recursive: true}) {
-				if o.Err != nil {
-					uploadErr(w, o.Err)
-					return
-				}
-				keys = append(keys, o.Key)
+		isDir := strings.HasSuffix(item, "/")
+		var vers []minio.ObjectInfo
+		for o := range c.ListObjects(ctx, req.Bucket, minio.ListObjectsOptions{Prefix: item, Recursive: true, WithVersions: true}) {
+			if o.Err != nil {
+				uploadErr(w, o.Err)
+				return
+			}
+			if isDir || o.Key == item {
+				vers = append(vers, o)
 			}
 		}
-		for _, k := range keys {
-			if err := c.RemoveObject(ctx, req.Bucket, k, minio.RemoveObjectOptions{}); err != nil {
-				failed = append(failed, k+": "+err.Error())
-			} else {
+		for _, o := range vers {
+			if err := c.RemoveObject(ctx, req.Bucket, o.Key, minio.RemoveObjectOptions{VersionID: o.VersionID}); err != nil {
+				failed = append(failed, o.Key+": "+err.Error())
+			} else if !o.IsDeleteMarker {
 				deleted++
+				if parts := strings.SplitN(o.Key, "/", 3); len(parts) == 3 {
+					origs[parts[2]] = true
+				}
 			}
+		}
+	}
+	// Bucket bật versioning: "chuyển vào thùng rác" để lại delete marker + các bản cũ ở tên gốc. Xoá vĩnh viễn thì
+	// dọn luôn chúng, nhưng CHỈ khi tên gốc đang ở trạng thái đã xoá (nếu đã có file mới cùng tên thì giữ nguyên).
+	for orig := range origs {
+		var all []minio.ObjectInfo
+		for o := range c.ListObjects(ctx, req.Bucket, minio.ListObjectsOptions{Prefix: orig, Recursive: true, WithVersions: true}) {
+			if o.Err == nil && o.Key == orig {
+				all = append(all, o)
+			}
+		}
+		if len(all) == 0 {
+			continue
+		}
+		latestDeleted := false
+		for _, o := range all {
+			if o.IsLatest && o.IsDeleteMarker {
+				latestDeleted = true
+			}
+		}
+		if !latestDeleted {
+			continue
+		}
+		for _, o := range all {
+			_ = c.RemoveObject(ctx, req.Bucket, o.Key, minio.RemoveObjectOptions{VersionID: o.VersionID})
 		}
 	}
 	writeJSON(w, http.StatusOK, map[string]interface{}{"deleted": deleted, "failed": failed})
@@ -318,4 +348,50 @@ func fsZip(w http.ResponseWriter, r *http.Request, c *minio.Client) {
 			return
 		}
 	}
+}
+
+const fsMaxSave = 20 << 20 // soạn thảo trong trình duyệt: tối đa 20 MiB
+
+func fsSave(w http.ResponseWriter, r *http.Request, c *minio.Client) {
+	q := r.URL.Query()
+	bucket, key, etag := q.Get("bucket"), strings.TrimLeft(q.Get("key"), "/"), strings.Trim(q.Get("etag"), "\"")
+	if bucket == "" || key == "" || strings.HasSuffix(key, "/") {
+		fsBadRequest(w, "missing bucket/key")
+		return
+	}
+	if r.ContentLength < 0 {
+		writeJSON(w, http.StatusLengthRequired, map[string]string{"detailedMessage": "missing Content-Length"})
+		return
+	}
+	if r.ContentLength > fsMaxSave {
+		writeJSON(w, http.StatusRequestEntityTooLarge, map[string]string{"detailedMessage": "file quá lớn để sửa trong trình duyệt"})
+		return
+	}
+	ctx := r.Context()
+	ct := mime.TypeByExtension(path.Ext(key))
+	st, err := c.StatObject(ctx, bucket, key, minio.StatObjectOptions{})
+	switch {
+	case err == nil:
+		if etag != "" && strings.Trim(st.ETag, "\"") != etag {
+			writeJSON(w, http.StatusConflict, map[string]string{"detailedMessage": "file đã được người khác sửa sau khi bạn mở"})
+			return
+		}
+		if st.ContentType != "" {
+			ct = st.ContentType
+		}
+	case minio.ToErrorResponse(err).StatusCode == http.StatusNotFound:
+		if etag != "" {
+			writeJSON(w, http.StatusConflict, map[string]string{"detailedMessage": "file đã bị xoá hoặc đổi tên"})
+			return
+		}
+	default:
+		uploadErr(w, err)
+		return
+	}
+	info, err := c.PutObject(ctx, bucket, key, r.Body, r.ContentLength, minio.PutObjectOptions{ContentType: ct})
+	if err != nil {
+		uploadErr(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]string{"etag": info.ETag, "versionId": info.VersionID})
 }

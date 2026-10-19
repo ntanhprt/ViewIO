@@ -31,6 +31,9 @@ import DocxViewer from "./DocViewer/DocxViewer";
 import OfficeViewer from "./DocViewer/OfficeViewer";
 import HtmlViewer from "./DocViewer/HtmlViewer";
 import DrawioViewer from "./DocViewer/DrawioViewer";
+import TextEditor from "./DocViewer/TextEditor";
+import { useSelector } from "react-redux";
+import { AppState } from "../../../../../../store";
 
 interface IPreviewFileProps {
   bucketName: string;
@@ -59,6 +62,11 @@ const PreviewFile = ({ bucketName, actualInfo, onResolved }: IPreviewFileProps) 
   const dispatch = useAppDispatch();
   const [metaData, setMetaData] = useState<any>(null);
   const [isMetaDataLoaded, setIsMetaDataLoaded] = useState(false);
+  const [editing, setEditing] = useState(false);
+  const [rev, setRev] = useState(0); // tăng sau khi lưu để các viewer đọc lại nội dung mới
+  const anonymousMode = useSelector(
+    (state: AppState) => state.system.anonymousMode,
+  );
 
   const objectName = actualInfo?.name || "";
   const fileName = objectName.split("/").pop() || objectName;
@@ -97,6 +105,13 @@ const PreviewFile = ({ bucketName, actualInfo, onResolved }: IPreviewFileProps) 
   }
 
   const objectType = previewObjectType(metaData, objectName);
+  // Sửa trực tiếp: file dạng text (Markdown, code, CSV, HTML, draw.io XML); không sửa bản cũ trong lịch sử
+  const editable =
+    !anonymousMode &&
+    ["code", "markdown", "csv", "html", "drawio"].includes(objectType) &&
+    (actualInfo as any)?.is_latest !== false &&
+    (actualInfo?.size ? Number(actualInfo.size) : 0) <= 5 * 1024 * 1024;
+  const latestPath = `${window.location.origin}${document.baseURI.replace(window.location.origin, "")}api/v1/buckets/${encodeURIComponent(bucketName)}/objects/download?preview=true&prefix=${encodeURIComponent(objectName)}`;
   const size = actualInfo?.size ? Number(actualInfo.size) : undefined;
 
   useEffect(() => {
@@ -117,8 +132,36 @@ const PreviewFile = ({ bucketName, actualInfo, onResolved }: IPreviewFileProps) 
     return <Loading />;
   }
 
+  if (editing) {
+    return (
+      <TextEditor
+        bucket={bucketName}
+        objectKey={objectName}
+        fileName={fileName}
+        textPath={latestPath}
+        markdown={objectType === "markdown"}
+        onClose={(saved) => {
+          setEditing(false);
+          if (saved) {
+            setRev((n) => n + 1);
+          }
+        }}
+      />
+    );
+  }
+
   return (
-    <Fragment>
+    <Fragment key={rev}>
+      {editable && (
+        <button
+          type="button"
+          className="dv-edit-trigger"
+          onClick={() => setEditing(true)}
+          title="Sửa nội dung file này"
+        >
+          ✎ Sửa
+        </button>
+      )}
       {objectType === "pdf" && <PdfViewer file={path} onDownload={download} />}
       {objectType === "image" && <ImageViewer src={path} onDownload={download} />}
       {objectType === "video" && (

@@ -638,3 +638,87 @@ a.dv-btn {
 .dv-tb-min:not(.dv-immersive) .dv-toolbar {
   display: none;
 }
+
+/* trình soạn thảo văn bản */
+.dv-edit {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+}
+.dv-edit-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  border-bottom: 1px solid rgba(128, 128, 128, 0.35);
+}
+.dv-edit-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.dv-edit-msg {
+  flex: 1;
+  font-size: 12px;
+  opacity: 0.75;
+}
+.dv-edit-btn {
+  padding: 4px 12px;
+  border-radius: 6px;
+  border: 1px solid rgba(128, 128, 128, 0.55);
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}
+.dv-edit-btn:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+.dv-edit-primary:not(:disabled) {
+  background: #2563eb;
+  border-color: #2563eb;
+  color: #fff;
+}
+.dv-edit-body {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+}
+.dv-edit-area {
+  flex: 1;
+  min-width: 0;
+  resize: none;
+  border: 0;
+  outline: none;
+  padding: 12px 14px;
+  background: transparent;
+  color: inherit;
+  font: 13px/1.55 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  tab-size: 2;
+}
+.dv-edit-preview {
+  flex: 1;
+  min-width: 0;
+  overflow: auto;
+  padding: 12px 18px;
+  border-left: 1px solid rgba(128, 128, 128, 0.35);
+}
+.dv-edit-trigger {
+  position: absolute;
+  bottom: 16px;
+  right: 24px;
+  z-index: 6;
+  padding: 4px 12px;
+  border-radius: 6px;
+  border: 1px solid rgba(128, 128, 128, 0.55);
+  background: rgba(128, 128, 128, 0.3);
+  color: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}
+.dv-edit-trigger:hover {
+  background: rgba(128, 128, 128, 0.5);
+}

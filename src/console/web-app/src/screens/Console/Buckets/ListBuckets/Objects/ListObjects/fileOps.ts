@@ -268,3 +268,26 @@ export const setUndo = (u: UndoEntry | null) => {
   undoEntry = u;
   window.dispatchEvent(new Event("viewio-clipboard"));
 };
+
+// Lưu nội dung text đã sửa. etag = ETag lúc mở file: nếu file đã bị người khác sửa, server trả 409 (conflict=true)
+export const saveText = async (
+  bucket: string,
+  key: string,
+  etag: string,
+  text: string,
+): Promise<{ etag: string; versionId: string }> => {
+  const q = new URLSearchParams({ bucket, key, etag });
+  const res = await fetch(url(`save?${q.toString()}`), {
+    method: "PUT",
+    credentials: "same-origin",
+    headers: { "Content-Type": "text/plain; charset=utf-8" },
+    body: new Blob([text], { type: "text/plain; charset=utf-8" }),
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    const err: any = new Error(data.detailedMessage || `Lỗi ${res.status}`);
+    err.conflict = res.status === 409;
+    throw err;
+  }
+  return data;
+};

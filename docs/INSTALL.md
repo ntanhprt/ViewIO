@@ -503,3 +503,11 @@ Chuột phải vào file/thư mục (chế độ bảng hoặc thumbnail), hoặ
 - Hoàn tác thao tác gần nhất (Ctrl+Z), thư mục mới, file văn bản mới, thuộc tính (dung lượng thư mục), tải nhiều mục/thư mục thành .zip, tìm trong toàn bộ bucket (Ctrl+Shift+F, lọc loại file và ngày), yêu thích và gần đây (lưu trên trình duyệt).
 - Copy/move chạy phía server (S3 copy), thư mục xử lý đệ quy, trùng tên thì thành "tên (1)". API: `/docview/fs/{list,transfer,mkdir,purge,search,info,zip}` (cần đăng nhập, đúng quyền của người dùng).
 - Viewer Word: nút "Bảng: vừa khít / nguyên bản" cho bảng rộng hơn trang.
+
+## Sửa file trực tiếp (1.6.0)
+
+Mở file Markdown, text, code, CSV, HTML hoặc draw.io (dạng XML) rồi bấm **✎ Sửa** (góc phải dưới): soạn thảo trong trình duyệt, Ctrl+S để lưu. Markdown có xem trước song song. Giới hạn 5 MB/file.
+
+- Lưu qua `PUT /docview/fs/save` kèm ETag lúc mở: nếu người khác đã sửa trước, ViewIO báo xung đột và hỏi có ghi đè không (không ghi đè âm thầm).
+- Nên bật **versioning** cho bucket để mỗi lần lưu giữ bản cũ: `mc version enable <alias>/<bucket>` (đã bật cho proton01–10). Bản cũ xem/khôi phục ở panel phiên bản của file. Versioning làm tốn thêm dung lượng; "Xoá vĩnh viễn" trong Thùng rác dọn cả các bản cũ của file đã xoá.
+- Word/Excel/PowerPoint chưa sửa được tại chỗ (cần máy chủ soạn thảo Office riêng, ví dụ ONLYOFFICE).

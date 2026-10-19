@@ -260,3 +260,6 @@
 .vio-dialog .vio-actions {
   flex-wrap: wrap;
 }
+.vio-left {
+  margin-right: auto;
+}

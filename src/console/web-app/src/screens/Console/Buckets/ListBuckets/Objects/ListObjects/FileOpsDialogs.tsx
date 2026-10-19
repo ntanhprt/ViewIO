@@ -13,6 +13,7 @@ import {
   info,
   listBuckets,
   listFolders,
+  mkdir,
   purge,
   search,
   toggleFavorite,
@@ -120,6 +121,27 @@ export const FolderPicker = ({
   const [folders, setFolders] = useState<string[]>([]);
   const [err, setErr] = useState("");
   const [loading, setLoading] = useState(false);
+  const [creating, setCreating] = useState(false);
+  const [newName, setNewName] = useState("Thư mục mới");
+  const [reload, setReload] = useState(0);
+
+  // Tạo thư mục ngay trong hộp chọn rồi đi vào đó, để chọn làm đích luôn
+  const createFolder = async () => {
+    const n = newName.trim();
+    if (!n || n.includes("/")) {
+      setErr("Tên thư mục không hợp lệ (không chứa “/”)");
+      return;
+    }
+    try {
+      await mkdir(bucket, `${prefix}${n}/`);
+      setCreating(false);
+      setNewName("Thư mục mới");
+      setPrefix(`${prefix}${n}/`);
+      setReload((x) => x + 1);
+    } catch (e: any) {
+      setErr(e?.message || String(e));
+    }
+  };
 
   useEffect(() => {
     listBuckets()
@@ -137,7 +159,7 @@ export const FolderPicker = ({
     return () => {
       alive = false;
     };
-  }, [bucket, prefix]);
+  }, [bucket, prefix, reload]);
 
   const crumbs = prefix.split("/").filter(Boolean);
   const blocked = (p: string) => bucket === srcBucket && disabledPrefixes.some((d) => p.startsWith(d));
@@ -182,6 +204,31 @@ export const FolderPicker = ({
             ↩ Lên thư mục cha
           </button>
         ) : null}
+        {creating ? (
+          <div className="vio-hit">
+            <input
+              className="vio-input"
+              autoFocus
+              value={newName}
+              onFocus={(e) => e.target.select()}
+              onChange={(e) => setNewName(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  createFolder();
+                } else if (e.key === "Escape") {
+                  e.stopPropagation();
+                  setCreating(false);
+                }
+              }}
+            />
+            <button type="button" className="vio-btn vio-primary vio-small" onClick={createFolder}>
+              Tạo
+            </button>
+            <button type="button" className="vio-btn vio-small" onClick={() => setCreating(false)}>
+              ✕
+            </button>
+          </div>
+        ) : null}
         {loading ? <div className="vio-muted">Đang tải…</div> : null}
         {err ? <div className="vio-warn">{err}</div> : null}
         {!loading && !err && folders.length === 0 ? <div className="vio-muted">Không có thư mục con</div> : null}
@@ -196,6 +243,16 @@ export const FolderPicker = ({
         {hereBlocked ? " (không thể chuyển thư mục vào chính nó)" : ""}
       </div>
       <div className="vio-actions">
+        <button
+          type="button"
+          className="vio-btn vio-left"
+          onClick={() => {
+            setErr("");
+            setCreating(true);
+          }}
+        >
+          📁+ Thư mục mới
+        </button>
         <button type="button" className="vio-btn" onClick={onCancel}>
           Hủy
         </button>

@@ -15,6 +15,9 @@ services:
       MINIO_ROOT_PASSWORD: ${VIEWIO_ROOT_PASSWORD:?Thiếu VIEWIO_ROOT_PASSWORD trong .env (chạy ./install.sh)}
       MINIO_BROWSER_REDIRECT_URL: ${VIEWIO_REDIRECT_URL:-}
       # Sửa Office bằng ONLYOFFICE: đặt VIEWIO_OFFICE_URL + VIEWIO_OFFICE_JWT_SECRET và chạy `--profile office` (xem docs/INSTALL.md)
+      # Sửa sơ đồ draw.io trực quan: đặt VIEWIO_DRAWIO_URL và chạy `--profile office` (service viewio-drawio)
+      VIEWIO_DRAWIO_URL: ${VIEWIO_DRAWIO_URL:-}
+      VIEWIO_DRAWIO_LAN_PORT: ${DRAWIO_PORT:-21033}
       VIEWIO_OFFICE_URL: ${VIEWIO_OFFICE_URL:-}
       VIEWIO_OFFICE_INTERNAL_URL: http://viewio-office
       VIEWIO_OFFICE_CALLBACK_URL: http://minio:9001
@@ -81,6 +84,15 @@ services:
       - office-lib:/var/lib/onlyoffice
       - office-log:/var/log/onlyoffice
     mem_limit: 8g
+
+  viewio-drawio:
+    profiles: ["office"]
+    image: ${DRAWIO_IMAGE:-jgraph/drawio:latest}
+    container_name: viewio-drawio
+    restart: unless-stopped
+    ports:
+      - "${DRAWIO_PORT:-21033}:8080"
+    mem_limit: 1g
 
 volumes:
   office-lib:

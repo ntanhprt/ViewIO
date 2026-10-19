@@ -502,13 +502,18 @@ func fsNewDoc(w http.ResponseWriter, r *http.Request, c *minio.Client) {
 	}
 	key := strings.TrimLeft(req.Key, "/")
 	ext := strings.ToLower(strings.TrimPrefix(path.Ext(key), "."))
-	if ext != "docx" && ext != "xlsx" && ext != "pptx" {
-		fsBadRequest(w, "chỉ hỗ trợ .docx .xlsx .pptx")
-		return
-	}
-	data, err := officeTemplates.ReadFile("officetpl/new." + ext)
-	if err != nil {
-		fsBadRequest(w, "không có mẫu")
+	var data []byte
+	switch ext {
+	case "docx", "xlsx", "pptx":
+		var err error
+		if data, err = officeTemplates.ReadFile("officetpl/new." + ext); err != nil {
+			fsBadRequest(w, "không có mẫu")
+			return
+		}
+	case "drawio":
+		data = []byte(drawioBlankXML)
+	default:
+		fsBadRequest(w, "chỉ hỗ trợ .docx .xlsx .pptx .drawio")
 		return
 	}
 	ctx := r.Context()
@@ -522,9 +527,10 @@ func fsNewDoc(w http.ResponseWriter, r *http.Request, c *minio.Client) {
 		return
 	}
 	ct := map[string]string{
-		"docx": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-		"xlsx": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-		"pptx": "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+		"docx":   "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+		"xlsx":   "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+		"pptx":   "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+		"drawio": "application/vnd.jgraph.mxfile",
 	}[ext]
 	if _, err := c.PutObject(ctx, req.Bucket, key, strings.NewReader(string(data)), int64(len(data)), minio.PutObjectOptions{ContentType: ct}); err != nil {
 		uploadErr(w, err)

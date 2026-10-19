@@ -531,3 +531,14 @@ Service mẫu trong `docker-compose.yml` (profile `office`): `onlyoffice/documen
 Cách hoạt động: ViewIO cấp file cho Document Server bằng URL có token ký (HS256, hạn 24 giờ, đúng quyền của người đang sửa) và nhận bản sửa qua callback, rồi ghi về kho bằng chính quyền của người đó. Bucket bật versioning thì giữ bản cũ. Nhiều người mở cùng file sẽ cùng một phiên đồng soạn thảo. Nếu file trong kho bị đổi từ nơi khác giữa chừng, bản sửa được lưu thành "tên (bản sửa xung đột …).docx" bên cạnh, không ghi đè.
 
 Giấy phép: ONLYOFFICE Docs Community là AGPL, giới hạn ~20 kết nối soạn thảo đồng thời; vượt thì cần bản Enterprise.
+
+## Sửa sơ đồ draw.io trực quan (1.8.0)
+
+Mở file `.drawio` / `.dio` rồi bấm icon bút chì (hoặc chuột phải → "Sửa sơ đồ (draw.io)"; chuột phải vào chỗ trống → "Sơ đồ draw.io mới"). ViewIO nhúng draw.io tự host (image `jgraph/drawio`, chạy offline, không gọi dịch vụ ngoài), tự lưu khi sửa, file lưu dạng XML không nén.
+
+| Biến | Ý nghĩa |
+|---|---|
+| `VIEWIO_DRAWIO_URL` | Địa chỉ công khai của draw.io cho trình duyệt, vd `https://draw.example.com`; để trống = tắt (khi đó vẫn sửa được XML thô) |
+| `VIEWIO_DRAWIO_LAN_PORT` | Cổng draw.io khi vào ViewIO bằng IP/LAN (mặc định 21033) |
+
+draw.io chạy ở origin riêng nên nội dung sơ đồ không chạm được phiên Console. Lưu qua `/docview/fs/save` kèm ETag: người khác sửa trước thì hỏi trước khi ghi đè; bucket bật versioning thì giữ bản cũ. Service mẫu `viewio-drawio` nằm trong profile `office` của `docker-compose.yml`.

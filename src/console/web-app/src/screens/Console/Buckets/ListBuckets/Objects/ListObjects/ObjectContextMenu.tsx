@@ -17,7 +17,9 @@ import {
   getClipboard,
   getUndo,
   isFavorite,
+  canDrawioEdit,
   canOfficeEdit,
+  drawioEnabled,
   mkdir,
   newOfficeDoc,
   officeEnabled,
@@ -64,6 +66,8 @@ type Dialog =
   | { t: "new"; dir: boolean }
   | { t: "newoffice"; ext: "docx" | "xlsx" | "pptx" }
   | { t: "office"; key: string }
+  | { t: "drawio"; key: string }
+  | { t: "newdrawio" }
   | { t: "search" }
   | { t: "trash" }
   | { t: "info"; key: string }
@@ -97,8 +101,10 @@ const ObjectContextMenu = ({
   const [problem, setProblem] = useState<string[] | null>(null);
   const [, bump] = useState(0);
   const [office, setOffice] = useState(false);
+  const [drawio, setDrawio] = useState(false);
   useEffect(() => {
     officeEnabled().then(setOffice);
+    drawioEnabled().then(setDrawio);
   }, []);
 
   useEffect(() => {
@@ -406,6 +412,9 @@ const ObjectContextMenu = ({
     const inTrash = items.some((i) => i.startsWith(".trash/"));
     if (single) {
       entries.push({ label: singleIsDir ? "Mở thư mục" : "Mở / xem", act: () => onOpen(single) });
+      if (drawio && !singleIsDir && canDrawioEdit(single)) {
+        entries.push({ label: "Sửa sơ đồ (draw.io)", act: () => setDialog({ t: "drawio", key: single }) });
+      }
       if (office && !singleIsDir && canOfficeEdit(single)) {
         entries.push({ label: "Sửa (Office)", act: () => setDialog({ t: "office", key: single }) });
       }
@@ -447,6 +456,9 @@ const ObjectContextMenu = ({
     } else {
       entries.push({ label: "Thư mục mới", sep: true, act: () => setDialog({ t: "new", dir: true }) });
       entries.push({ label: "File văn bản mới", act: () => setDialog({ t: "new", dir: false }) });
+      if (drawio) {
+        entries.push({ label: "Sơ đồ draw.io mới", act: () => setDialog({ t: "newdrawio" }) });
+      }
       if (office) {
         entries.push({ label: "Tài liệu Word mới", act: () => setDialog({ t: "newoffice", ext: "docx" }) });
         entries.push({ label: "Bảng tính Excel mới", act: () => setDialog({ t: "newoffice", ext: "xlsx" }) });
@@ -484,7 +496,7 @@ const ObjectContextMenu = ({
     try {
       await newOfficeDoc(bucketName, key);
       dispatch(setReloadObjectsList(true));
-      setDialog({ t: "office", key });
+      setDialog(ext === "drawio" ? { t: "drawio", key } : { t: "office", key });
     } catch (e: any) {
       setProblem([e?.message || String(e)]);
     }
@@ -581,6 +593,27 @@ const ObjectContextMenu = ({
           isDir={false}
           onCancel={() => setDialog(null)}
           onOk={(n) => createOffice(n, dialog.ext)}
+        />
+      ) : null}
+      {dialog?.t === "newdrawio" ? (
+        <NameDialog
+          title="Sơ đồ draw.io mới"
+          initial="Sơ đồ mới.drawio"
+          okLabel="Tạo và mở"
+          isDir={false}
+          onCancel={() => setDialog(null)}
+          onOk={(n) => createOffice(n, "drawio")}
+        />
+      ) : null}
+      {dialog?.t === "drawio" ? (
+        <OfficeEditorOverlay
+          bucket={bucketName}
+          objectKey={dialog.key}
+          kind="drawio"
+          onClose={() => {
+            setDialog(null);
+            dispatch(setReloadObjectsList(true));
+          }}
         />
       ) : null}
       {dialog?.t === "office" ? (

@@ -33,7 +33,7 @@ import HtmlViewer from "./DocViewer/HtmlViewer";
 import DrawioViewer from "./DocViewer/DrawioViewer";
 import TextEditor from "./DocViewer/TextEditor";
 import OfficeEditorOverlay from "../ListObjects/OfficeEditorOverlay";
-import { canOfficeEdit, info as fsInfo, officeEnabled } from "../ListObjects/fileOps";
+import { canOfficeEdit, drawioEnabled, info as fsInfo, officeEnabled } from "../ListObjects/fileOps";
 import { useSelector } from "react-redux";
 import { AppState } from "../../../../../../store";
 
@@ -66,6 +66,8 @@ const PreviewFile = ({ bucketName, actualInfo, onResolved }: IPreviewFileProps) 
   const [isMetaDataLoaded, setIsMetaDataLoaded] = useState(false);
   const [editing, setEditing] = useState(false);
   const [officeOn, setOfficeOn] = useState(false);
+  const [drawioOn, setDrawioOn] = useState(false);
+  const [drawioEditing, setDrawioEditing] = useState(false);
   const [officeEditing, setOfficeEditing] = useState(false);
   const [officeEtag, setOfficeEtag] = useState("");
   const [rev, setRev] = useState(0); // tăng sau khi lưu để các viewer đọc lại nội dung mới
@@ -75,6 +77,7 @@ const PreviewFile = ({ bucketName, actualInfo, onResolved }: IPreviewFileProps) 
 
   useEffect(() => {
     officeEnabled().then(setOfficeOn);
+    drawioEnabled().then(setDrawioOn);
   }, []);
 
   const objectName = actualInfo?.name || "";
@@ -118,8 +121,14 @@ const PreviewFile = ({ bucketName, actualInfo, onResolved }: IPreviewFileProps) 
   const editable =
     !anonymousMode &&
     ["code", "markdown", "csv", "html", "drawio"].includes(objectType) &&
+    !(objectType === "drawio" && drawioOn) &&
     (actualInfo as any)?.is_latest !== false &&
     (actualInfo?.size ? Number(actualInfo.size) : 0) <= 5 * 1024 * 1024;
+  const drawioEditable =
+    drawioOn &&
+    !anonymousMode &&
+    objectType === "drawio" &&
+    (actualInfo as any)?.is_latest !== false;
   const officeEditable =
     officeOn &&
     !anonymousMode &&
@@ -164,6 +173,20 @@ const PreviewFile = ({ bucketName, actualInfo, onResolved }: IPreviewFileProps) 
     }
   };
 
+  if (drawioEditing) {
+    return (
+      <OfficeEditorOverlay
+        bucket={bucketName}
+        objectKey={objectName}
+        kind="drawio"
+        onClose={() => {
+          setDrawioEditing(false);
+          setRev((n) => n + 1);
+        }}
+      />
+    );
+  }
+
   if (officeEditing) {
     return (
       <OfficeEditorOverlay
@@ -194,6 +217,20 @@ const PreviewFile = ({ bucketName, actualInfo, onResolved }: IPreviewFileProps) 
 
   return (
     <Fragment key={rev}>
+      {drawioEditable && (
+        <button
+          type="button"
+          className="dv-edit-trigger"
+          onClick={() => setDrawioEditing(true)}
+          title="Sửa sơ đồ bằng draw.io"
+          aria-label="Sửa"
+        >
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M12 20h9" />
+            <path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z" />
+          </svg>
+        </button>
+      )}
       {officeEditable && (
         <button
           type="button"

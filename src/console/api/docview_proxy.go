@@ -45,6 +45,8 @@ func serveDocview(w http.ResponseWriter, r *http.Request) {
 		serveDocviewRaw(w, r)
 	case strings.HasPrefix(r.URL.Path, docviewUploadPrefix):
 		serveDocviewUpload(w, r)
+	case strings.HasPrefix(r.URL.Path, docviewDrawioPrefix):
+		serveDocviewDrawio(w, r)
 	case strings.HasPrefix(r.URL.Path, docviewOfficePrefix):
 		serveDocviewOffice(w, r)
 	case strings.HasPrefix(r.URL.Path, docviewFsPrefix):

@@ -315,3 +315,22 @@ export const officeEditorUrl = (bucket: string, key: string) =>
 
 export const newOfficeDoc = (bucket: string, key: string) =>
   postJson("newdoc", { bucket, key });
+
+// ---- Sửa sơ đồ draw.io trực quan (draw.io tự host, xem api/docview_drawio.go) ----
+export const canDrawioEdit = (name: string) => /\.(drawio|dio)$/i.test(name);
+
+let drawioFlag: Promise<boolean> | null = null;
+export const drawioEnabled = (): Promise<boolean> => {
+  if (!drawioFlag) {
+    drawioFlag = fetch(`${window.location.origin}${base()}docview/drawio/status`, {
+      credentials: "same-origin",
+    })
+      .then((r) => (r.ok ? r.json() : { enabled: false }))
+      .then((d) => !!d.enabled)
+      .catch(() => false);
+  }
+  return drawioFlag;
+};
+
+export const drawioEditorUrl = (bucket: string, key: string) =>
+  `${window.location.origin}${base()}docview/drawio/editor?${new URLSearchParams({ bucket, key }).toString()}`;

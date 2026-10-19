@@ -43,7 +43,7 @@ const (
 )
 
 type fsTransferReq struct {
-	Op         string   `json:"op"`         // copy | move
+	Op         string   `json:"op"`         // copy | move | trash (chuyển vào .trash/) | restore (khôi phục từ .trash/)
 	Bucket     string   `json:"bucket"`     // bucket nguồn
 	Items      []string `json:"items"`      // key nguồn; thư mục kết thúc bằng "/"
 	DestBucket string   `json:"destBucket"` // mặc định = bucket nguồn
@@ -60,7 +60,15 @@ type fsLine struct {
 	OK      int      `json:"ok,omitempty"`
 	Skipped int      `json:"skipped,omitempty"`
 	Failed  []string `json:"failed,omitempty"`
+	Moves   []fsMove `json:"moves,omitempty"` // mục cấp cao nhất: nguồn -> đích thực tế (để hoàn tác)
 }
+
+type fsMove struct {
+	From string `json:"from"`
+	To   string `json:"to"`
+}
+
+const fsTrashPrefix = ".trash/"
 
 type fsSrc struct {
 	key  string // key nguồn
@@ -85,6 +93,16 @@ func serveDocviewFs(w http.ResponseWriter, r *http.Request) {
 		fsList(w, r, client)
 	case action == "transfer" && r.Method == http.MethodPost:
 		fsTransfer(w, r, client)
+	case action == "mkdir" && r.Method == http.MethodPost:
+		fsMkdir(w, r, client)
+	case action == "purge" && r.Method == http.MethodPost:
+		fsPurge(w, r, client)
+	case action == "search" && r.Method == http.MethodGet:
+		fsSearch(w, r, client)
+	case action == "info" && r.Method == http.MethodGet:
+		fsInfo(w, r, client)
+	case action == "zip" && r.Method == http.MethodGet:
+		fsZip(w, r, client)
 	default:
 		http.Error(w, "not found", http.StatusNotFound)
 	}
@@ -203,11 +221,11 @@ func fsCopyOne(ctx context.Context, c *minio.Client, sb, s, db, d string, size i
 func fsTransfer(w http.ResponseWriter, r *http.Request, client *minio.Client) {
 	var req fsTransferReq
 	if json.NewDecoder(http.MaxBytesReader(w, r.Body, 4<<20)).Decode(&req) != nil ||
-		(req.Op != "copy" && req.Op != "move") || req.Bucket == "" || len(req.Items) == 0 {
+		(req.Op != "copy" && req.Op != "move" && req.Op != "trash" && req.Op != "restore") || req.Bucket == "" || len(req.Items) == 0 {
 		writeJSON(w, http.StatusBadRequest, map[string]string{"detailedMessage": "bad request"})
 		return
 	}
-	if req.DestBucket == "" {
+	if req.DestBucket == "" || req.Op == "trash" || req.Op == "restore" {
 		req.DestBucket = req.Bucket
 	}
 	req.DestPrefix = strings.TrimLeft(req.DestPrefix, "/")
@@ -226,6 +244,8 @@ func fsTransfer(w http.ResponseWriter, r *http.Request, client *minio.Client) {
 
 	// Lập kế hoạch: mỗi item -> danh sách (nguồn, đích)
 	var plan []fsSrc
+	var moves []fsMove
+	stamp := time.Now().UTC().Format("20060102T150405Z")
 	for _, item := range req.Items {
 		item = strings.TrimLeft(item, "/")
 		if item == "" {
@@ -236,15 +256,31 @@ func fsTransfer(w http.ResponseWriter, r *http.Request, client *minio.Client) {
 		if name == "" {
 			name = path.Base(strings.TrimSuffix(item, "/"))
 		}
-		if isDir && sameBucket && strings.HasPrefix(req.DestPrefix+name+"/", item) {
+		dp := req.DestPrefix
+		switch req.Op {
+		case "trash":
+			if strings.HasPrefix(item, fsTrashPrefix) {
+				writeJSON(w, http.StatusBadRequest, map[string]string{"detailedMessage": "mục này đã ở trong thùng rác"})
+				return
+			}
+			dp = fsTrashPrefix + stamp + "/" + fsParent(item)
+		case "restore":
+			parts := strings.SplitN(item, "/", 3) // ".trash", "<stamp>", "<đường dẫn gốc>"
+			if len(parts) < 3 || parts[0]+"/" != fsTrashPrefix || parts[2] == "" {
+				writeJSON(w, http.StatusBadRequest, map[string]string{"detailedMessage": "không phải mục trong thùng rác"})
+				return
+			}
+			dp = fsParent(parts[2])
+		}
+		if isDir && sameBucket && strings.HasPrefix(dp+name+"/", item) {
 			writeJSON(w, http.StatusBadRequest, map[string]string{"detailedMessage": "không thể chuyển/sao chép thư mục vào chính nó"})
 			return
 		}
-		target := req.DestPrefix + name
+		target := dp + name
 		if isDir {
 			target += "/"
 		}
-		if req.Op == "move" && sameBucket && target == item {
+		if req.Op != "copy" && sameBucket && target == item {
 			continue // chuyển về đúng chỗ cũ: không làm gì
 		}
 		switch req.Conflict {
@@ -255,13 +291,13 @@ func fsTransfer(w http.ResponseWriter, r *http.Request, client *minio.Client) {
 				return
 			}
 			if ok {
-				free, err := fsFreeName(ctx, client, req.DestBucket, req.DestPrefix, name, isDir)
+				free, err := fsFreeName(ctx, client, req.DestBucket, dp, name, isDir)
 				if err != nil {
 					uploadErr(w, err)
 					return
 				}
 				name = free
-				target = req.DestPrefix + name
+				target = dp + name
 				if isDir {
 					target += "/"
 				}
@@ -277,6 +313,7 @@ func fsTransfer(w http.ResponseWriter, r *http.Request, client *minio.Client) {
 				return
 			}
 		}
+		moves = append(moves, fsMove{From: item, To: target})
 		if !isDir {
 			st, err := client.StatObject(ctx, req.Bucket, item, minio.StatObjectOptions{})
 			if err != nil {
@@ -345,7 +382,7 @@ func fsTransfer(w http.ResponseWriter, r *http.Request, client *minio.Client) {
 			_, err = client.PutObject(ctx, req.DestBucket, p.dest, strings.NewReader(""), 0, minio.PutObjectOptions{})
 		} else {
 			err = fsCopyOne(ctx, client, req.Bucket, p.key, req.DestBucket, p.dest, p.size)
-			if err == nil && req.Op == "move" {
+			if err == nil && req.Op != "copy" {
 				err = client.RemoveObject(ctx, req.Bucket, p.key, minio.RemoveObjectOptions{})
 			}
 		}
@@ -360,5 +397,16 @@ func fsTransfer(w http.ResponseWriter, r *http.Request, client *minio.Client) {
 		}
 		emit(fsLine{Done: i + 1, Total: len(plan)})
 	}
+	res.Moves = moves
 	emit(res)
+}
+
+// fsParent: "a/b/c.txt" -> "a/b/", "a/b/" -> "a/", "c.txt" -> "".
+func fsParent(key string) string {
+	k := strings.TrimSuffix(key, "/")
+	i := strings.LastIndex(k, "/")
+	if i < 0 {
+		return ""
+	}
+	return k[:i+1]
 }

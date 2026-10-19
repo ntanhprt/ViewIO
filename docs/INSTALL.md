@@ -492,3 +492,14 @@ rm -rf ./data                            # CHỈ khi chắc chắn muốn xóa v
 | Cần bắt đầu lại từ đầu | `./viewio.sh down`, xóa `.env`, chạy lại `./install.sh` (dữ liệu giữ nguyên nếu không xóa thư mục data) |
 
 Cần hỗ trợ thêm: mở issue tại https://github.com/ntanhprt/ViewIO/issues kèm đầu ra của `./viewio.sh status` và `./viewio.sh logs --tail=100`.
+
+
+## Quản lý file kiểu Explorer (1.4.0 / 1.5.0)
+
+Chuột phải vào file/thư mục (chế độ bảng hoặc thumbnail), hoặc vào chỗ trống:
+
+- Cắt / Sao chép / Dán (Ctrl+X/C/V), Di chuyển đến… / Sao chép đến… (chọn thư mục, kể cả bucket khác), Đổi tên (F2), kéo thả vào thư mục (giữ Ctrl để sao chép).
+- Xoá (phím Del) chuyển vào thùng rác `.trash/<thời điểm>/<đường dẫn gốc>` trong cùng bucket, khôi phục được; "Thùng rác" ở menu chỗ trống để khôi phục / xoá vĩnh viễn / dọn sạch. Nút xoá cũ trên thanh công cụ vẫn xoá vĩnh viễn.
+- Hoàn tác thao tác gần nhất (Ctrl+Z), thư mục mới, file văn bản mới, thuộc tính (dung lượng thư mục), tải nhiều mục/thư mục thành .zip, tìm trong toàn bộ bucket (Ctrl+Shift+F, lọc loại file và ngày), yêu thích và gần đây (lưu trên trình duyệt).
+- Copy/move chạy phía server (S3 copy), thư mục xử lý đệ quy, trùng tên thì thành "tên (1)". API: `/docview/fs/{list,transfer,mkdir,purge,search,info,zip}` (cần đăng nhập, đúng quyền của người dùng).
+- Viewer Word: nút "Bảng: vừa khít / nguyên bản" cho bảng rộng hơn trang.

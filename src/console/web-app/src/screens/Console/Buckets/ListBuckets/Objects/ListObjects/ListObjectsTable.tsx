@@ -30,6 +30,7 @@ import {
 } from "../../../../ObjectBrowser/objectBrowserSlice";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import ObjectContextMenu from "./ObjectContextMenu";
+import { addRecent, info as fsInfo } from "./fileOps";
 import get from "lodash/get";
 import { sortListObjects } from "../utils";
 import { BucketObjectItem } from "./types";
@@ -121,6 +122,10 @@ const ListObjectsTable = () => {
   ]);
 
   const plSelect = records.filter((b: BucketObjectItem) => {
+    // thư mục thùng rác của ViewIO: chỉ mở qua menu chuột phải → "Thùng rác"
+    if (b.name === ".trash/") {
+      return false;
+    }
     if (searchObjects === "") {
       return true;
     } else {
@@ -193,6 +198,7 @@ const ListObjectsTable = () => {
     if (anonymousMode || !obj || obj.name.endsWith("/") || obj.delete_flag) {
       return;
     }
+    addRecent(bucketName, obj.name);
     dispatch(setSelectedPreview(obj));
     dispatch(setPreviewOpen(true));
   };
@@ -260,8 +266,42 @@ const ListObjectsTable = () => {
     if (anonymousMode) {
       return;
     }
+    addRecent(bucketName, item.name);
     dispatch(setSelectedPreview(item));
     dispatch(setPreviewOpen(true));
+  };
+
+  const navigateTo = (bucket: string, prefix: string) => {
+    dispatch(setSelectedObjects([]));
+    navigate(
+      `/browser/${encodeURIComponent(bucket)}${
+        prefix ? `/${encodeURIComponent(prefix)}` : ""
+      }`,
+    );
+  };
+
+  // Mở file theo key (từ tìm kiếm / yêu thích / gần đây): lấy thông tin rồi mở viewer; khác bucket thì chỉ mở thư mục chứa
+  const previewKey = async (bucket: string, key: string) => {
+    if (bucket !== bucketName) {
+      navigateTo(bucket, key.slice(0, key.lastIndexOf("/") + 1));
+      return;
+    }
+    try {
+      const st = await fsInfo(bucket, key);
+      addRecent(bucket, key);
+      dispatch(
+        setSelectedPreview({
+          name: key,
+          size: st.size,
+          last_modified: st.modified || "",
+          version_id: "",
+          content_type: st.contentType,
+        } as BucketObjectItem),
+      );
+      dispatch(setPreviewOpen(true));
+    } catch {
+      navigateTo(bucket, key.slice(0, key.lastIndexOf("/") + 1));
+    }
   };
 
   let errorMessage =
@@ -324,6 +364,8 @@ const ListObjectsTable = () => {
             previewItem(obj);
           }
         }}
+        onNavigate={navigateTo}
+        onPreviewKey={previewKey}
         onDownload={(name) => {
           const obj = payload.find((o) => o.name === name);
           if (obj) {

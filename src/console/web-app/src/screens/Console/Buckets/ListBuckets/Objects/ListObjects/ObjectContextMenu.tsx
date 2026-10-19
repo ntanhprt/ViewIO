@@ -1,5 +1,6 @@
-// ViewIO: menu chuột phải + phím tắt kiểu Windows Explorer cho danh sách file
-// (Mở, Tải xuống, Cắt, Sao chép, Dán, Di chuyển đến…, Sao chép đến…, Đổi tên).
+// ViewIO: menu chuột phải + phím tắt + kéo thả kiểu Windows Explorer cho danh sách file:
+// Mở, Tải xuống (.zip), Cắt/Sao chép/Dán, Di chuyển/Sao chép đến…, Đổi tên, Xoá (thùng rác), Thuộc tính,
+// Yêu thích, Thư mục/file mới, Tìm toàn bucket, Thùng rác, Hoàn tác.
 
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { useAppDispatch } from "../../../../../../store";
@@ -10,12 +11,28 @@ import {
 } from "../../../../ObjectBrowser/objectBrowserSlice";
 import {
   baseName,
+  FsOp,
+  FsRef,
+  fsParent,
   getClipboard,
-  listBuckets,
-  listFolders,
+  getUndo,
+  isFavorite,
+  mkdir,
   setClipboard,
+  setUndo,
+  toggleFavorite,
   transfer,
+  zipDownload,
 } from "./fileOps";
+import {
+  FavDialog,
+  FolderPicker,
+  InfoDialog,
+  Mode,
+  NameDialog,
+  SearchDialog,
+  TrashDialog,
+} from "./FileOpsDialogs";
 import "./ObjectContextMenu.css";
 
 interface IProps {
@@ -27,13 +44,32 @@ interface IProps {
   onSelect: (names: string[]) => void;
   onOpen: (name: string) => void;
   onDownload: (name: string) => void;
+  onNavigate: (bucket: string, prefix: string) => void;
+  onPreviewKey: (bucket: string, key: string) => void;
   children: React.ReactNode;
 }
 
-type Mode = "copy" | "move";
+const DRAG_TYPE = "application/x-viewio-items";
 
 const inField = (t: EventTarget | null) =>
   !!(t as HTMLElement | null)?.closest?.("input, textarea, select, [contenteditable='true']");
+
+type Dialog =
+  | { t: "picker"; mode: Mode; items: string[] }
+  | { t: "rename"; key: string }
+  | { t: "new"; dir: boolean }
+  | { t: "search" }
+  | { t: "trash" }
+  | { t: "info"; key: string }
+  | { t: "fav" };
+
+interface Entry {
+  label: string;
+  hint?: string;
+  disabled?: boolean;
+  sep?: boolean;
+  act: () => void;
+}
 
 const ObjectContextMenu = ({
   bucketName,
@@ -43,13 +79,15 @@ const ObjectContextMenu = ({
   onSelect,
   onOpen,
   onDownload,
+  onNavigate,
+  onPreviewKey,
   children,
 }: IProps) => {
   const dispatch = useAppDispatch();
+  const wrapRef = useRef<HTMLDivElement | null>(null);
   const [menu, setMenu] = useState<{ x: number; y: number; items: string[] } | null>(null);
-  const [picker, setPicker] = useState<{ mode: Mode; items: string[] } | null>(null);
-  const [renaming, setRenaming] = useState<string | null>(null);
-  const [busy, setBusy] = useState<{ text: string } | null>(null);
+  const [dialog, setDialog] = useState<Dialog | null>(null);
+  const [busy, setBusy] = useState<string | null>(null);
   const [problem, setProblem] = useState<string[] | null>(null);
   const [, bump] = useState(0);
 
@@ -64,35 +102,47 @@ const ObjectContextMenu = ({
     dispatch(setReloadObjectsList(true));
   }, [dispatch]);
 
+  const notify = useCallback((m: string) => dispatch(setSnackBarMessage(m)), [dispatch]);
+
   const run = useCallback(
     async (
-      mode: Mode,
+      op: FsOp,
       items: string[],
       destBucket: string,
       destPrefix: string,
-      opts: { newName?: string; conflict?: "keep" | "fail"; src?: string } = {},
+      opts: { newName?: string; conflict?: "keep" | "fail"; src?: string; noUndo?: boolean } = {},
     ) => {
-      const verb = mode === "copy" ? "Đang sao chép" : "Đang chuyển";
-      setBusy({ text: `${verb}…` });
+      const src = opts.src || bucketName;
+      const verb = { copy: "Đang sao chép", move: "Đang chuyển", trash: "Đang xoá", restore: "Đang khôi phục" }[op];
+      setBusy(`${verb}…`);
       try {
         const r = await transfer({
-          op: mode,
-          bucket: opts.src || bucketName,
+          op,
+          bucket: src,
           items,
           destBucket,
           destPrefix,
           newName: opts.newName,
           conflict: opts.conflict || "keep",
-          onProgress: (d, t) => setBusy({ text: `${verb}… ${d}/${t}` }),
+          onProgress: (d, t) => setBusy(`${verb}… ${d}/${t}`),
         });
         if (r.failed.length > 0) {
           setProblem(r.failed);
         } else {
-          dispatch(
-            setSnackBarMessage(
-              `${mode === "copy" ? "Đã sao chép" : "Đã chuyển"} ${r.ok} file`,
-            ),
-          );
+          const done = { copy: "Đã sao chép", move: "Đã chuyển", trash: "Đã chuyển vào thùng rác", restore: "Đã khôi phục" }[op];
+          notify(`${done} ${r.ok} file`);
+        }
+        if (!opts.noUndo && r.moves.length > 0 && destBucket === src) {
+          if (op === "copy") {
+            setUndo({ kind: "trashCreated", label: "sao chép", keys: r.moves.map((m) => m.to), bucket: src });
+          } else {
+            setUndo({
+              kind: "moveBack",
+              label: { move: "di chuyển", trash: "xoá", restore: "khôi phục" }[op],
+              moves: r.moves,
+              bucket: src,
+            });
+          }
         }
         refresh();
         return r.failed.length === 0;
@@ -103,8 +153,45 @@ const ObjectContextMenu = ({
         setBusy(null);
       }
     },
-    [bucketName, dispatch, refresh],
+    [bucketName, notify, refresh],
   );
+
+  const doUndo = useCallback(async () => {
+    const u = getUndo();
+    if (!u) {
+      return;
+    }
+    setUndo(null);
+    if (u.kind === "trashCreated") {
+      await run("trash", u.keys, u.bucket, "", { src: u.bucket, noUndo: true });
+      return;
+    }
+    setBusy("Đang hoàn tác…");
+    const failed: string[] = [];
+    for (const m of u.moves) {
+      try {
+        const r = await transfer({
+          op: "move",
+          bucket: u.bucket,
+          items: [m.to],
+          destBucket: u.bucket,
+          destPrefix: fsParent(m.from),
+          newName: baseName(m.from),
+          conflict: "keep",
+        });
+        failed.push(...r.failed);
+      } catch (e: any) {
+        failed.push(e?.message || String(e));
+      }
+    }
+    setBusy(null);
+    if (failed.length) {
+      setProblem(failed);
+    } else {
+      notify(`Đã hoàn tác ${u.label}`);
+    }
+    refresh();
+  }, [notify, refresh, run]);
 
   const doCopyCut = useCallback(
     (op: Mode, items: string[]) => {
@@ -121,9 +208,7 @@ const ObjectContextMenu = ({
       if (!cb) {
         return;
       }
-      const ok = await run(cb.op, cb.items, bucketName, intoFolder ?? currentPrefix, {
-        src: cb.bucket,
-      });
+      const ok = await run(cb.op, cb.items, bucketName, intoFolder ?? currentPrefix, { src: cb.bucket });
       if (ok && cb.op === "move") {
         setClipboard(null);
       }
@@ -131,8 +216,26 @@ const ObjectContextMenu = ({
     [bucketName, currentPrefix, run],
   );
 
-  // Phím tắt: Ctrl+C / Ctrl+X / Ctrl+V / F2 khi không gõ trong ô nhập và không có hộp thoại
-  const dialogOpen = !!(picker || renaming || busy || problem);
+  const doTrash = useCallback((items: string[]) => items.length && run("trash", items, bucketName, ""), [bucketName, run]);
+
+  const download = (items: string[]) => {
+    if (items.length === 1 && !items[0].endsWith("/")) {
+      onDownload(items[0]);
+    } else {
+      zipDownload(bucketName, items);
+    }
+  };
+
+  const openRef = (r: FsRef) => {
+    if (r.key.endsWith("/")) {
+      onNavigate(r.bucket, r.key);
+    } else {
+      onPreviewKey(r.bucket, r.key);
+    }
+  };
+
+  // Phím tắt khi không gõ trong ô nhập và không có hộp thoại
+  const dialogOpen = !!(dialog || busy || problem);
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (dialogOpen || inField(e.target) || window.getSelection()?.toString()) {
@@ -149,16 +252,25 @@ const ObjectContextMenu = ({
       } else if (mod && k === "v" && getClipboard()) {
         e.preventDefault();
         doPaste();
+      } else if (mod && k === "z" && getUndo()) {
+        e.preventDefault();
+        doUndo();
+      } else if (mod && e.shiftKey && k === "f") {
+        e.preventDefault();
+        setDialog({ t: "search" });
       } else if (e.key === "F2" && selected.length === 1) {
         e.preventDefault();
-        setRenaming(selected[0]);
+        setDialog({ t: "rename", key: selected[0] });
+      } else if (e.key === "Delete" && selected.length) {
+        e.preventDefault();
+        doTrash(selected);
       } else if (e.key === "Escape") {
         setMenu(null);
       }
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [dialogOpen, selected, doCopyCut, doPaste]);
+  }, [dialogOpen, selected, doCopyCut, doPaste, doUndo, doTrash]);
 
   useEffect(() => {
     if (!menu) {
@@ -174,6 +286,87 @@ const ObjectContextMenu = ({
       window.removeEventListener("resize", close);
     };
   }, [menu]);
+
+  // Kéo thả: đặt draggable cho dòng của bảng (thẻ thumbnail tự có data-vt-name)
+  useEffect(() => {
+    const root = wrapRef.current;
+    if (!root) {
+      return;
+    }
+    const mark = () => {
+      root.querySelectorAll<HTMLElement>("[role='row'], [data-vt-name]").forEach((el) => {
+        if (el.getAttribute("draggable") !== "true" && !el.querySelector("[role='columnheader']")) {
+          el.setAttribute("draggable", "true");
+        }
+      });
+    };
+    mark();
+    const mo = new MutationObserver(mark);
+    mo.observe(root, { childList: true, subtree: true });
+    return () => mo.disconnect();
+  }, []);
+
+  const clearDrop = () =>
+    wrapRef.current?.querySelectorAll(".vio-drop").forEach((el) => el.classList.remove("vio-drop"));
+
+  const dropTarget = (e: React.DragEvent): { el: HTMLElement; folder: string } | null => {
+    const t = e.target as HTMLElement;
+    const key = itemFromTarget(t);
+    if (!key || !key.endsWith("/")) {
+      return null;
+    }
+    const el = (t.closest("[data-vt-name]") || t.closest("[role='row']")) as HTMLElement | null;
+    return el ? { el, folder: key } : null;
+  };
+
+  const onDragStart = (e: React.DragEvent<HTMLDivElement>) => {
+    const key = itemFromTarget(e.target as HTMLElement);
+    if (!key) {
+      return;
+    }
+    const items = selected.includes(key) ? selected : [key];
+    if (!selected.includes(key)) {
+      onSelect([key]);
+    }
+    e.dataTransfer.setData(DRAG_TYPE, JSON.stringify(items));
+    e.dataTransfer.effectAllowed = "copyMove";
+  };
+
+  const onDragOver = (e: React.DragEvent<HTMLDivElement>) => {
+    if (!e.dataTransfer.types.includes(DRAG_TYPE)) {
+      return;
+    }
+    clearDrop();
+    const d = dropTarget(e);
+    if (d) {
+      e.preventDefault();
+      e.dataTransfer.dropEffect = e.ctrlKey ? "copy" : "move";
+      d.el.classList.add("vio-drop");
+    }
+  };
+
+  const onDrop = (e: React.DragEvent<HTMLDivElement>) => {
+    if (!e.dataTransfer.types.includes(DRAG_TYPE)) {
+      return;
+    }
+    clearDrop();
+    const d = dropTarget(e);
+    if (!d) {
+      return;
+    }
+    e.preventDefault();
+    e.stopPropagation();
+    let items: string[] = [];
+    try {
+      items = JSON.parse(e.dataTransfer.getData(DRAG_TYPE));
+    } catch {
+      return;
+    }
+    items = items.filter((i) => i !== d.folder);
+    if (items.length) {
+      run(e.ctrlKey ? "copy" : "move", items, bucketName, d.folder);
+    }
+  };
 
   const onContextMenu = (e: React.MouseEvent<HTMLDivElement>) => {
     const target = e.target as HTMLElement;
@@ -194,56 +387,100 @@ const ObjectContextMenu = ({
   };
 
   const cb = getClipboard();
-  const single = menu && menu.items.length === 1 ? menu.items[0] : null;
-  const singleIsDir = !!single && single.endsWith("/");
-
-  const entries: { label: string; hint?: string; disabled?: boolean; act: () => void; sep?: boolean }[] =
-    [];
+  const undo = getUndo();
+  const entries: Entry[] = [];
   if (menu) {
+    const items = menu.items;
+    const single = items.length === 1 ? items[0] : null;
+    const singleIsDir = !!single && single.endsWith("/");
+    const inTrash = items.some((i) => i.startsWith(".trash/"));
     if (single) {
       entries.push({ label: singleIsDir ? "Mở thư mục" : "Mở / xem", act: () => onOpen(single) });
-      if (!singleIsDir) {
-        entries.push({ label: "Tải xuống", act: () => onDownload(single) });
-      }
     }
-    if (menu.items.length > 0) {
-      entries.push({ label: "Cắt", hint: "Ctrl+X", sep: entries.length > 0, act: () => doCopyCut("move", menu.items) });
-      entries.push({ label: "Sao chép", hint: "Ctrl+C", act: () => doCopyCut("copy", menu.items) });
+    if (items.length > 0) {
+      entries.push({
+        label: single && !singleIsDir ? "Tải xuống" : "Tải xuống (.zip)",
+        act: () => download(items),
+      });
+      entries.push({ label: "Cắt", hint: "Ctrl+X", sep: true, act: () => doCopyCut("move", items) });
+      entries.push({ label: "Sao chép", hint: "Ctrl+C", act: () => doCopyCut("copy", items) });
     }
     const pasteInto = singleIsDir ? single : undefined;
     entries.push({
       label: pasteInto ? "Dán vào thư mục này" : "Dán",
       hint: pasteInto ? undefined : "Ctrl+V",
       disabled: !cb,
-      sep: menu.items.length === 0 ? false : false,
+      sep: items.length === 0,
       act: () => doPaste(pasteInto || undefined),
     });
-    if (menu.items.length > 0) {
-      entries.push({ label: "Di chuyển đến…", sep: true, act: () => setPicker({ mode: "move", items: menu.items }) });
-      entries.push({ label: "Sao chép đến…", act: () => setPicker({ mode: "copy", items: menu.items }) });
+    if (items.length > 0) {
+      entries.push({ label: "Di chuyển đến…", sep: true, act: () => setDialog({ t: "picker", mode: "move", items }) });
+      entries.push({ label: "Sao chép đến…", act: () => setDialog({ t: "picker", mode: "copy", items }) });
+      if (single) {
+        entries.push({ label: "Đổi tên", hint: "F2", act: () => setDialog({ t: "rename", key: single }) });
+        entries.push({
+          label: isFavorite(bucketName, single) ? "Bỏ khỏi yêu thích" : "Thêm vào yêu thích",
+          act: () => notify(toggleFavorite(bucketName, single) ? "Đã thêm vào yêu thích" : "Đã bỏ khỏi yêu thích"),
+        });
+        entries.push({ label: "Thuộc tính", act: () => setDialog({ t: "info", key: single }) });
+      }
+      entries.push({
+        label: "Xoá (vào thùng rác)",
+        hint: "Del",
+        sep: true,
+        disabled: inTrash,
+        act: () => doTrash(items),
+      });
+    } else {
+      entries.push({ label: "Thư mục mới", sep: true, act: () => setDialog({ t: "new", dir: true }) });
+      entries.push({ label: "File văn bản mới", act: () => setDialog({ t: "new", dir: false }) });
+      entries.push({
+        label: undo ? `Hoàn tác ${undo.label}` : "Hoàn tác",
+        hint: "Ctrl+Z",
+        disabled: !undo,
+        sep: true,
+        act: doUndo,
+      });
+      entries.push({ label: "Tìm trong toàn bộ bucket…", hint: "Ctrl+Shift+F", act: () => setDialog({ t: "search" }) });
+      entries.push({ label: "Yêu thích và gần đây", act: () => setDialog({ t: "fav" }) });
+      entries.push({ label: "Thùng rác", act: () => setDialog({ t: "trash" }) });
+      entries.push({ label: "Làm mới", sep: true, act: () => dispatch(setReloadObjectsList(true)) });
     }
-    if (single) {
-      entries.push({ label: "Đổi tên", hint: "F2", sep: true, act: () => setRenaming(single) });
-    }
-    entries.push({ label: "Làm mới", sep: true, act: () => dispatch(setReloadObjectsList(true)) });
   }
 
+  const createNew = async (name: string, dir: boolean) => {
+    setDialog(null);
+    try {
+      await mkdir(bucketName, currentPrefix + name + (dir ? "/" : ""));
+      notify(dir ? "Đã tạo thư mục" : "Đã tạo file");
+      dispatch(setReloadObjectsList(true));
+    } catch (e: any) {
+      setProblem([e?.message || String(e)]);
+    }
+  };
+
   return (
-    <div onContextMenu={onContextMenu}>
+    <div
+      ref={wrapRef}
+      onContextMenu={onContextMenu}
+      onDragStart={onDragStart}
+      onDragOver={onDragOver}
+      onDragLeave={clearDrop}
+      onDrop={onDrop}
+      onDragEnd={clearDrop}
+    >
       {children}
       {menu ? (
         <div
           className="vio-menu"
           style={{
-            left: Math.min(menu.x, window.innerWidth - 230),
-            top: Math.min(menu.y, window.innerHeight - entries.length * 32 - 16),
+            left: Math.min(menu.x, window.innerWidth - 240),
+            top: Math.max(8, Math.min(menu.y, window.innerHeight - entries.length * 32 - 24)),
           }}
           onClick={(e) => e.stopPropagation()}
           onContextMenu={(e) => e.preventDefault()}
         >
-          {menu.items.length > 1 ? (
-            <div className="vio-menu-title">{menu.items.length} mục đã chọn</div>
-          ) : null}
+          {menu.items.length > 1 ? <div className="vio-menu-title">{menu.items.length} mục đã chọn</div> : null}
           {entries.map((en) => (
             <React.Fragment key={en.label}>
               {en.sep ? <div className="vio-menu-sep" /> : null}
@@ -263,42 +500,67 @@ const ObjectContextMenu = ({
           ))}
         </div>
       ) : null}
-      {picker ? (
+      {dialog?.t === "picker" ? (
         <FolderPicker
-          mode={picker.mode}
-          count={picker.items.length}
+          mode={dialog.mode}
+          count={dialog.items.length}
           startBucket={bucketName}
           startPrefix={currentPrefix}
-          disabledPrefixes={picker.items.filter((i) => i.endsWith("/"))}
+          disabledPrefixes={dialog.items.filter((i) => i.endsWith("/"))}
           srcBucket={bucketName}
-          onCancel={() => setPicker(null)}
+          onCancel={() => setDialog(null)}
           onChoose={(b, p) => {
-            const p0 = picker;
-            setPicker(null);
-            run(p0.mode, p0.items, b, p);
+            const d = dialog;
+            setDialog(null);
+            run(d.mode, d.items, b, p);
           }}
         />
       ) : null}
-      {renaming ? (
-        <RenameDialog
-          name={baseName(renaming)}
-          isDir={renaming.endsWith("/")}
-          onCancel={() => setRenaming(null)}
+      {dialog?.t === "rename" ? (
+        <NameDialog
+          title={`Đổi tên ${dialog.key.endsWith("/") ? "thư mục" : "file"}`}
+          initial={baseName(dialog.key)}
+          okLabel="Đổi tên"
+          isDir={dialog.key.endsWith("/")}
+          onCancel={() => setDialog(null)}
           onOk={async (n) => {
-            const key = renaming;
-            setRenaming(null);
+            const key = dialog.key;
+            setDialog(null);
             if (n !== baseName(key)) {
-              await run("move", [key], bucketName, key.slice(0, key.length - baseName(key).length - (key.endsWith("/") ? 1 : 0)), {
-                newName: n,
-                conflict: "fail",
-              });
+              await run("move", [key], bucketName, fsParent(key), { newName: n, conflict: "fail" });
             }
           }}
         />
       ) : null}
+      {dialog?.t === "new" ? (
+        <NameDialog
+          title={dialog.dir ? "Thư mục mới" : "File văn bản mới"}
+          initial={dialog.dir ? "Thư mục mới" : "Tài liệu mới.txt"}
+          okLabel="Tạo"
+          isDir={dialog.dir}
+          onCancel={() => setDialog(null)}
+          onOk={(n) => createNew(n, dialog.dir)}
+        />
+      ) : null}
+      {dialog?.t === "search" ? (
+        <SearchDialog
+          bucket={bucketName}
+          currentPrefix={currentPrefix}
+          onOpenFile={(k) => onPreviewKey(bucketName, k)}
+          onOpenFolder={(p) => onNavigate(bucketName, p)}
+          onClose={() => setDialog(null)}
+        />
+      ) : null}
+      {dialog?.t === "trash" ? (
+        <TrashDialog bucket={bucketName} onChanged={refresh} onClose={() => setDialog(null)} />
+      ) : null}
+      {dialog?.t === "info" ? (
+        <InfoDialog bucket={bucketName} keyName={dialog.key} onClose={() => setDialog(null)} />
+      ) : null}
+      {dialog?.t === "fav" ? <FavDialog onOpen={openRef} onClose={() => setDialog(null)} /> : null}
       {busy ? (
         <div className="vio-overlay">
-          <div className="vio-dialog vio-busy">{busy.text}</div>
+          <div className="vio-dialog vio-busy">{busy}</div>
         </div>
       ) : null}
       {problem ? (
@@ -319,190 +581,6 @@ const ObjectContextMenu = ({
           </div>
         </div>
       ) : null}
-    </div>
-  );
-};
-
-const RenameDialog = ({
-  name,
-  isDir,
-  onOk,
-  onCancel,
-}: {
-  name: string;
-  isDir: boolean;
-  onOk: (n: string) => void;
-  onCancel: () => void;
-}) => {
-  const [v, setV] = useState(name);
-  const ref = useRef<HTMLInputElement | null>(null);
-  useEffect(() => {
-    const el = ref.current;
-    if (el) {
-      el.focus();
-      const dot = isDir ? -1 : name.lastIndexOf(".");
-      el.setSelectionRange(0, dot > 0 ? dot : name.length);
-    }
-  }, [name, isDir]);
-  const valid = v.trim() !== "" && !v.includes("/");
-  return (
-    <div className="vio-overlay" onMouseDown={onCancel}>
-      <div className="vio-dialog" onMouseDown={(e) => e.stopPropagation()}>
-        <h3>Đổi tên {isDir ? "thư mục" : "file"}</h3>
-        <input
-          ref={ref}
-          className="vio-input"
-          value={v}
-          onChange={(e) => setV(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === "Enter" && valid) {
-              onOk(v.trim());
-            } else if (e.key === "Escape") {
-              onCancel();
-            }
-          }}
-        />
-        {v.includes("/") ? <div className="vio-warn">Tên không được chứa dấu “/”</div> : null}
-        <div className="vio-actions">
-          <button type="button" className="vio-btn" onClick={onCancel}>
-            Hủy
-          </button>
-          <button type="button" className="vio-btn vio-primary" disabled={!valid} onClick={() => onOk(v.trim())}>
-            Đổi tên
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-};
-
-const FolderPicker = ({
-  mode,
-  count,
-  startBucket,
-  startPrefix,
-  disabledPrefixes,
-  srcBucket,
-  onChoose,
-  onCancel,
-}: {
-  mode: Mode;
-  count: number;
-  startBucket: string;
-  startPrefix: string;
-  disabledPrefixes: string[];
-  srcBucket: string;
-  onChoose: (bucket: string, prefix: string) => void;
-  onCancel: () => void;
-}) => {
-  const [bucket, setBucket] = useState(startBucket);
-  const [prefix, setPrefix] = useState(startPrefix);
-  const [buckets, setBuckets] = useState<string[]>([startBucket]);
-  const [folders, setFolders] = useState<string[]>([]);
-  const [err, setErr] = useState("");
-  const [loading, setLoading] = useState(false);
-
-  useEffect(() => {
-    listBuckets()
-      .then((b) => b.length && setBuckets(b))
-      .catch(() => undefined);
-  }, []);
-  useEffect(() => {
-    let alive = true;
-    setLoading(true);
-    setErr("");
-    listFolders(bucket, prefix)
-      .then((f) => alive && setFolders(f))
-      .catch((e) => alive && (setErr(e.message), setFolders([])))
-      .finally(() => alive && setLoading(false));
-    return () => {
-      alive = false;
-    };
-  }, [bucket, prefix]);
-
-  const crumbs = prefix.split("/").filter(Boolean);
-  const blocked = (p: string) => bucket === srcBucket && disabledPrefixes.some((d) => p.startsWith(d));
-  const hereBlocked = blocked(prefix);
-  return (
-    <div className="vio-overlay" onMouseDown={onCancel}>
-      <div className="vio-dialog vio-picker" onMouseDown={(e) => e.stopPropagation()}>
-        <h3>
-          {mode === "move" ? "Di chuyển" : "Sao chép"} {count} mục đến…
-        </h3>
-        <div className="vio-crumbs">
-          <select
-            className="vio-input vio-bucket"
-            value={bucket}
-            onChange={(e) => {
-              setBucket(e.target.value);
-              setPrefix("");
-            }}
-          >
-            {buckets.map((b) => (
-              <option key={b} value={b}>
-                {b}
-              </option>
-            ))}
-          </select>
-          <button type="button" className="vio-crumb" onClick={() => setPrefix("")}>
-            /
-          </button>
-          {crumbs.map((c, i) => (
-            <button
-              type="button"
-              key={i}
-              className="vio-crumb"
-              onClick={() => setPrefix(crumbs.slice(0, i + 1).join("/") + "/")}
-            >
-              {c} /
-            </button>
-          ))}
-        </div>
-        <div className="vio-folders">
-          {prefix ? (
-            <button
-              type="button"
-              className="vio-folder"
-              onClick={() => setPrefix(crumbs.slice(0, -1).join("/") + (crumbs.length > 1 ? "/" : ""))}
-            >
-              ↩ Lên thư mục cha
-            </button>
-          ) : null}
-          {loading ? <div className="vio-muted">Đang tải…</div> : null}
-          {err ? <div className="vio-warn">{err}</div> : null}
-          {!loading && !err && folders.length === 0 ? (
-            <div className="vio-muted">Không có thư mục con</div>
-          ) : null}
-          {folders.map((f) => (
-            <button
-              type="button"
-              key={f}
-              className="vio-folder"
-              disabled={blocked(f)}
-              onClick={() => setPrefix(f)}
-            >
-              📁 {baseName(f)}
-            </button>
-          ))}
-        </div>
-        <div className="vio-muted">
-          Đích: {bucket}/{prefix}
-          {hereBlocked ? " (không thể chuyển thư mục vào chính nó)" : ""}
-        </div>
-        <div className="vio-actions">
-          <button type="button" className="vio-btn" onClick={onCancel}>
-            Hủy
-          </button>
-          <button
-            type="button"
-            className="vio-btn vio-primary"
-            disabled={hereBlocked}
-            onClick={() => onChoose(bucket, prefix)}
-          >
-            {mode === "move" ? "Chuyển vào đây" : "Sao chép vào đây"}
-          </button>
-        </div>
-      </div>
     </div>
   );
 };

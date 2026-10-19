@@ -177,3 +177,86 @@
   opacity: 0.4;
   cursor: default;
 }
+.vio-wide {
+  width: min(620px, calc(100vw - 32px));
+}
+.vio-filters {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin: 8px 0;
+}
+.vio-filters .vio-input {
+  width: auto;
+}
+.vio-check {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.vio-results {
+  height: 300px;
+}
+.vio-hit {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 2px 4px;
+  border-radius: 5px;
+}
+.vio-hit:hover {
+  background: rgba(128, 128, 128, 0.15);
+}
+.vio-hit-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  padding: 4px 4px;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  overflow: hidden;
+}
+.vio-hit-main b,
+.vio-hit-main .vio-muted {
+  padding: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.vio-small {
+  padding: 3px 8px;
+}
+.vio-danger {
+  border-color: #e5484d;
+  color: #e5484d;
+}
+.vio-danger:disabled {
+  opacity: 0.45;
+}
+.vio-section {
+  padding: 6px 4px 2px;
+  font-weight: 600;
+}
+.vio-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 4px 0;
+  border-bottom: 1px solid rgba(128, 128, 128, 0.2);
+  word-break: break-all;
+}
+.vio-drop {
+  outline: 2px solid #2563eb !important;
+  outline-offset: -2px;
+  background: rgba(37, 99, 235, 0.2) !important;
+}
+.vio-dialog .vio-actions {
+  flex-wrap: wrap;
+}

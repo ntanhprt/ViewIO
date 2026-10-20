@@ -1,3 +1,5 @@
+import { getWho } from "../../../../../../identity";
+
 // ViewIO: thao tác kiểu Windows Explorer (copy / cắt / dán / di chuyển / đổi tên) — gọi /docview/fs/* (api/docview_fs.go)
 
 export interface FsClipboard {
@@ -181,6 +183,7 @@ export interface FsInfo {
   modified?: string;
   contentType?: string;
   etag?: string;
+  editor?: string;
   files?: number;
   folders?: number;
   truncated?: boolean;
@@ -355,7 +358,7 @@ export const officeEnabled = (): Promise<boolean> => {
 };
 
 export const officeEditorUrl = (bucket: string, key: string) =>
-  `${window.location.origin}${base()}docview/office/editor?${new URLSearchParams({ bucket, key }).toString()}`;
+  `${window.location.origin}${base()}docview/office/editor?${new URLSearchParams({ bucket, key, who: getWho() }).toString()}`;
 
 export const newOfficeDoc = (bucket: string, key: string) =>
   postJson("newdoc", { bucket, key });
@@ -377,7 +380,7 @@ export const drawioEnabled = (): Promise<boolean> => {
 };
 
 export const drawioEditorUrl = (bucket: string, key: string) =>
-  `${window.location.origin}${base()}docview/drawio/editor?${new URLSearchParams({ bucket, key }).toString()}`;
+  `${window.location.origin}${base()}docview/drawio/editor?${new URLSearchParams({ bucket, key, who: getWho() }).toString()}`;
 
 // ---- Office đời cũ (.doc/.xls/.ppt...): chuyển sang định dạng mới rồi mới sửa được ----
 export const LEGACY_OFFICE: Record<string, string> = {
@@ -409,3 +412,17 @@ export const listImages = async (bucket: string, dir: string): Promise<FsHit[]> 
   const d = await getJson("images", { bucket, dir });
   return d.images || [];
 };
+
+// ---- Nhật ký hoạt động / thông báo ----
+export interface ActivityEntry {
+  t: number;
+  bucket: string;
+  actor: string;
+  op: string;
+  key: string;
+  to?: string;
+  via?: string;
+}
+
+export const getActivity = async (): Promise<{ entries: ActivityEntry[]; now: number }> =>
+  getJson("activity", { limit: "100" });

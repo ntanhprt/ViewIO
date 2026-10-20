@@ -37,6 +37,8 @@ import PageHeaderWrapper from "../Common/PageHeaderWrapper/PageHeaderWrapper";
 import ObjectManagerButton from "../Common/ObjectManager/ObjectManagerButton";
 import HelpMenu from "../HelpMenu";
 import { setHelpName } from "../../../systemSlice";
+import ActivityBell from "./ActivityBell";
+import "../Buckets/ListBuckets/Objects/ListObjects/ObjectContextMenu.css";
 
 interface IOBHeader {
   bucketName: string;
@@ -156,6 +158,7 @@ const OBHeader = ({ bucketName }: IOBHeader) => {
                   />
                 </TooltipWrapper>
               </SecureComponent>
+              <ActivityBell />
               <HelpMenu />
             </Fragment>
           }
@@ -180,6 +183,7 @@ const OBHeader = ({ bucketName }: IOBHeader) => {
             }}
           >
             {searchBar}
+            <ActivityBell />
             <ObjectManagerButton />
           </Grid>
         </Grid>

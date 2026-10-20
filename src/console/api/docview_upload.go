@@ -139,6 +139,7 @@ func serveDocviewUpload(w http.ResponseWriter, r *http.Request) {
 			uploadErr(w, err)
 			return
 		}
+		logActivity(r, bucket, "upload", key, "")
 		w.WriteHeader(http.StatusNoContent)
 
 	case action == "abort" && r.Method == http.MethodPost:

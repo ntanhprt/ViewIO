@@ -562,6 +562,7 @@ export const InfoDialog = ({ bucket, keyName, onClose }: { bucket: string; keyNa
           {row("Dung lượng", `${formatSize(d.size)} (${d.size.toLocaleString()} byte)`)}
           {d.dir ? row("Chứa", `${d.files} file, ${d.folders} thư mục con${d.truncated ? " (chưa đủ, thư mục quá lớn)" : ""}`) : null}
           {d.modified ? row("Sửa lần cuối", new Date(d.modified).toLocaleString()) : null}
+          {d.editor ? row("Người sửa cuối", d.editor) : null}
           {d.etag ? row("ETag", d.etag) : null}
         </>
       ) : null}

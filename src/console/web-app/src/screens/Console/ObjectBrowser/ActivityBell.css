@@ -1,0 +1,132 @@
+.vio-bell-wrap {
+  position: relative;
+  display: inline-flex;
+}
+.vio-bell {
+  position: relative;
+  width: 40px;
+  height: 40px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid rgba(128, 128, 128, 0.45);
+  border-radius: 4px;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+}
+.vio-bell:hover {
+  background: rgba(128, 128, 128, 0.18);
+}
+.vio-bell-badge {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 4px;
+  box-sizing: border-box;
+  border-radius: 9px;
+  background: #e5484d;
+  color: #fff;
+  font-size: 11px;
+  line-height: 18px;
+  text-align: center;
+}
+.vio-bell-panel {
+  position: absolute;
+  top: 46px;
+  right: 0;
+  z-index: 3000;
+  width: 420px;
+  max-width: calc(100vw - 24px);
+  border-radius: 8px;
+  border: 1px solid rgba(128, 128, 128, 0.45);
+  background: Canvas;
+  color: CanvasText;
+  box-shadow: 0 10px 34px rgba(0, 0, 0, 0.4);
+  font-size: 13px;
+}
+.vio-bell-head,
+.vio-bell-who {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border-bottom: 1px solid rgba(128, 128, 128, 0.3);
+}
+.vio-bell-head b {
+  flex: 1;
+}
+.vio-bell-chk {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+}
+.vio-bell-link {
+  border: 0;
+  background: transparent;
+  color: #2563eb;
+  cursor: pointer;
+  font: inherit;
+  font-size: 12px;
+}
+.vio-bell-link:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+.vio-bell-input {
+  flex: 1;
+  min-width: 0;
+  padding: 3px 8px;
+  border-radius: 5px;
+  border: 1px solid rgba(128, 128, 128, 0.55);
+  background: transparent;
+  color: inherit;
+  font: inherit;
+}
+.vio-bell-list {
+  max-height: 60vh;
+  overflow: auto;
+}
+.vio-bell-empty {
+  padding: 18px;
+  text-align: center;
+  opacity: 0.6;
+}
+.vio-bell-item {
+  display: flex;
+  gap: 10px;
+  width: 100%;
+  padding: 8px 12px;
+  border: 0;
+  border-bottom: 1px solid rgba(128, 128, 128, 0.15);
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.vio-bell-item:hover {
+  background: rgba(128, 128, 128, 0.15);
+}
+.vio-bell-item.vio-new {
+  background: rgba(37, 99, 235, 0.12);
+}
+.vio-bell-ic {
+  flex: 0 0 22px;
+  text-align: center;
+  opacity: 0.8;
+}
+.vio-bell-txt {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  word-break: break-word;
+}
+.vio-bell-sub {
+  font-size: 11px;
+  opacity: 0.6;
+}

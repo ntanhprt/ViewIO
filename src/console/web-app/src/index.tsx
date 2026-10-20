@@ -20,6 +20,9 @@ import { Provider } from "react-redux";
 import { store } from "./store";
 import MainRouter from "./MainRouter";
 import StyleHandler from "./StyleHandler";
+import { installIdentityHeader } from "./identity";
+
+installIdentityHeader();
 
 const root = ReactDOM.createRoot(
   document.getElementById("root") as HTMLElement,

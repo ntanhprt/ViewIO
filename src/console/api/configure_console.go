@@ -423,7 +423,7 @@ func FileServerMiddleware(next http.Handler) http.Handler {
 		case strings.HasPrefix(r.URL.Path, "/docview/"):
 			serveDocview(w, r)
 		case strings.HasPrefix(r.URL.Path, "/api"):
-			next.ServeHTTP(w, r)
+			withConsoleActivity(next).ServeHTTP(w, r)
 		default:
 			// ViewIO: tài nguyên gốc-tương-đối của trang HTML đang xem trong viewer (xem docview_raw.go)
 			if serveDocviewRootRelative(w, r) {

@@ -136,7 +136,7 @@ func serveDocviewDrawio(w http.ResponseWriter, r *http.Request) {
 
 	cfg, _ := json.Marshal(map[string]interface{}{
 		"bucket": bucket, "key": key, "etag": strings.Trim(st.ETag, "\""), "xml": xml,
-		"title": path.Base(key), "origin": origin,
+		"title": path.Base(key), "origin": origin, "who": strings.TrimSpace(r.URL.Query().Get("who")),
 	})
 	cfgs := strings.NewReplacer("<", "\\u003c", ">", "\\u003e", "&", "\\u0026").Replace(string(cfg))
 	nb := make([]byte, 16)
@@ -192,7 +192,7 @@ function send(o){ f.contentWindow.postMessage(JSON.stringify(o), C.origin); }
 var etag = C.etag, dirty = false;
 function put(xml, tag){
   return fetch("../fs/save?" + new URLSearchParams({bucket: C.bucket, key: C.key, etag: tag}), {
-    method: "PUT", credentials: "same-origin", headers: {"Content-Type": "application/xml; charset=utf-8"}, body: xml
+    method: "PUT", credentials: "same-origin", headers: {"Content-Type": "application/xml; charset=utf-8", "X-Viewio-User": encodeURIComponent(C.who || "")}, body: xml
   });
 }
 async function save(xml){

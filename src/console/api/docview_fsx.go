@@ -79,6 +79,11 @@ func fsMkdir(w http.ResponseWriter, r *http.Request, c *minio.Client) {
 		uploadErr(w, err)
 		return
 	}
+	op := "create"
+	if strings.HasSuffix(key, "/") {
+		op = "mkdir"
+	}
+	logActivity(r, req.Bucket, op, key, "")
 	writeJSON(w, http.StatusOK, map[string]string{"key": key})
 }
 
@@ -143,6 +148,9 @@ func fsPurge(w http.ResponseWriter, r *http.Request, c *minio.Client) {
 		for _, o := range all {
 			_ = c.RemoveObject(ctx, req.Bucket, o.Key, minio.RemoveObjectOptions{VersionID: o.VersionID})
 		}
+	}
+	for _, it := range req.Items {
+		logActivity(r, req.Bucket, "purge", strings.TrimLeft(it, "/"), "")
 	}
 	writeJSON(w, http.StatusOK, map[string]interface{}{"deleted": deleted, "failed": failed})
 }
@@ -244,9 +252,15 @@ func fsInfo(w http.ResponseWriter, r *http.Request, c *minio.Client) {
 			uploadErr(w, err)
 			return
 		}
+		editor := ""
+		for k, v := range st.UserMetadata {
+			if strings.EqualFold(k, "Viewio-Editor") {
+				editor, _ = url.QueryUnescape(v)
+			}
+		}
 		writeJSON(w, http.StatusOK, map[string]interface{}{
 			"dir": false, "key": key, "size": st.Size, "modified": st.LastModified,
-			"contentType": st.ContentType, "etag": st.ETag,
+			"contentType": st.ContentType, "etag": st.ETag, "editor": editor,
 		})
 		return
 	}
@@ -389,11 +403,12 @@ func fsSave(w http.ResponseWriter, r *http.Request, c *minio.Client) {
 		uploadErr(w, err)
 		return
 	}
-	info, err := c.PutObject(ctx, bucket, key, r.Body, r.ContentLength, minio.PutObjectOptions{ContentType: ct})
+	info, err := c.PutObject(ctx, bucket, key, r.Body, r.ContentLength, minio.PutObjectOptions{ContentType: ct, UserMetadata: editorMeta(actorName(r))})
 	if err != nil {
 		uploadErr(w, err)
 		return
 	}
+	logActivity(r, bucket, "edit", key, "")
 	writeJSON(w, http.StatusOK, map[string]string{"etag": info.ETag, "versionId": info.VersionID})
 }
 
@@ -427,4 +442,12 @@ func fsImages(w http.ResponseWriter, r *http.Request, c *minio.Client) {
 		hits = append(hits, fsHit{Key: o.Key, Size: o.Size, Modified: o.LastModified})
 	}
 	writeJSON(w, http.StatusOK, map[string]interface{}{"images": hits, "truncated": truncated})
+}
+
+// editorMeta: người sửa cuối ghi vào metadata của object (x-amz-meta-viewio-editor, mã hoá URL vì header chỉ nhận ASCII).
+func editorMeta(actor string) map[string]string {
+	if actor == "" {
+		return nil
+	}
+	return map[string]string{"Viewio-Editor": url.QueryEscape(actor)}
 }

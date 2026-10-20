@@ -89,6 +89,8 @@ func serveDocviewFs(w http.ResponseWriter, r *http.Request) {
 	}
 	action := strings.TrimPrefix(r.URL.Path, docviewFsPrefix)
 	switch {
+	case action == "activity" && r.Method == http.MethodGet:
+		fsActivity(w, r, client)
 	case action == "prefs" && (r.Method == http.MethodGet || r.Method == http.MethodPut):
 		fsPrefs(w, r, principal.AccountAccessKey)
 	case action == "list" && r.Method == http.MethodGet:
@@ -406,6 +408,22 @@ func fsTransfer(w http.ResponseWriter, r *http.Request, client *minio.Client) {
 		emit(fsLine{Done: i + 1, Total: len(plan)})
 	}
 	res.Moves = moves
+	if res.OK > 0 {
+		for _, m := range moves {
+			switch req.Op {
+			case "copy":
+				logActivity(r, req.DestBucket, "copy", m.From, m.To)
+			case "move":
+				op := "move"
+				if req.NewName != "" && fsParent(m.From) == fsParent(m.To) {
+					op = "rename"
+				}
+				logActivity(r, req.Bucket, op, m.From, m.To)
+			default:
+				logActivity(r, req.Bucket, req.Op, m.From, m.To)
+			}
+		}
+	}
 	emit(res)
 }
 

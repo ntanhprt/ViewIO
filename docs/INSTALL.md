@@ -553,3 +553,13 @@ draw.io chạy ở origin riêng nên nội dung sơ đồ không chạm đượ
 ## Xem ảnh theo thư mục (1.9.1)
 
 Mở một ảnh thì viewer cho chuyển sang ảnh trước/sau trong cùng thư mục (danh sách lấy từ máy chủ qua `GET /docview/fs/images`, nên đủ cả khi mở ảnh từ tìm kiếm / yêu thích hoặc danh sách chưa tải hết; sắp xếp theo tên với số theo giá trị: img2 trước img10): nút ‹ › trên thanh công cụ, mũi tên hai bên khung ảnh, phím ← →, có bộ đếm "3 / 25", quay vòng ở đầu/cuối và nạp trước ảnh kế bên. Zoom (nút, cuộn chuột), xoay, lật, kéo ảnh, "Vừa khung" / 100% dùng như cũ.
+
+## Thông báo hoạt động cho nhóm dùng chung tài khoản (1.10.0)
+
+Chuông **Thông báo** (góc trên phải khi duyệt bucket): danh sách "ai vừa làm gì với file nào", mới nhất ở trên, có đếm chưa đọc, báo nhanh khi người khác vừa thay đổi, bấm vào để mở thư mục/file.
+
+- **Tên người**: mỗi người tự đặt "Tên của bạn" (hỏi lần đầu vào, đổi ở chuông). Tên lưu trên trình duyệt và gửi kèm mọi thao tác (header `X-Viewio-User`) để ghi vào nhật ký và vào metadata `x-amz-meta-viewio-editor` ("Người sửa cuối" trong Thuộc tính). Không đặt tên thì hiện "Ẩn danh".
+- **Thao tác qua ViewIO** (tải lên, sửa, ONLYOFFICE, draw.io, di chuyển, sao chép, đổi tên, xoá/khôi phục, tạo mới...) ghi kèm tên người.
+- **Ghi/xoá bằng S3 API** (mc, boto3, Claude...) lấy qua webhook sự kiện của MinIO, hiện là "S3 API (công cụ) · tài khoản". Cấu hình (compose): `VIEWIO_EVENTS_TOKEN` và `MINIO_NOTIFY_WEBHOOK_*_VIEWIO` (endpoint `http://127.0.0.1:9001/docview/events`, có `QUEUE_DIR` để không mất sự kiện khi khởi động), rồi bật từng bucket: `mc event add <alias>/<bucket> arn:minio:sqs::VIEWIO:webhook --event put,delete`. Chỉ nên bật cho bucket người dùng; bucket ứng dụng ghi dồn dập sẽ sinh rất nhiều dòng.
+- Nhật ký lưu ở `$VIEWIO_PREFS_DIR/activity/<bucket>.jsonl` (giữ ~1000 dòng mới nhất mỗi bucket); API `GET /docview/fs/activity`.
+- Giới hạn: tên người chỉ là nhãn tự khai trên từng trình duyệt, không phải xác thực (người dùng chung tài khoản vẫn có cùng quyền).

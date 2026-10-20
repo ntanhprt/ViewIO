@@ -263,6 +263,14 @@ func officeEditor(w http.ResponseWriter, r *http.Request, c officeConfig) {
 		return
 	}
 	uid := principal.AccountAccessKey
+	who := strings.TrimSpace(r.URL.Query().Get("who"))
+	if rs := []rune(who); len(rs) > 60 {
+		who = string(rs[:60])
+	}
+	display := who
+	if display == "" {
+		display = uid
+	}
 	tok := jwtSign(c.secret, map[string]interface{}{
 		"b": bucket, "k": key, "e": strings.Trim(st.ETag, "\""), "s": sess, "u": uid,
 		"exp": time.Now().Add(24 * time.Hour).Unix(),
@@ -285,7 +293,7 @@ func officeEditor(w http.ResponseWriter, r *http.Request, c officeConfig) {
 			"callbackUrl": c.callback + "/docview/office/callback?t=" + url.QueryEscape(tok),
 			"lang":        "vi",
 			"mode":        "edit",
-			"user":        map[string]interface{}{"id": uid, "name": uid},
+			"user":        map[string]interface{}{"id": uid + "|" + who, "name": display},
 			"customization": map[string]interface{}{
 				"autosave": true, "forcesave": true, "compactHeader": true, "uiTheme": "default-light",
 				"spellcheck": false, // tắt gạch đỏ kiểm tra chính tả (không có từ điển tiếng Việt)
@@ -379,10 +387,11 @@ func officeFile(w http.ResponseWriter, r *http.Request, c officeConfig) {
 }
 
 type officeCallbackBody struct {
-	Status int    `json:"status"`
-	URL    string `json:"url"`
-	Key    string `json:"key"`
-	Token  string `json:"token"`
+	Status int      `json:"status"`
+	URL    string   `json:"url"`
+	Key    string   `json:"key"`
+	Token  string   `json:"token"`
+	Users  []string `json:"users"`
 }
 
 func officeCallback(w http.ResponseWriter, r *http.Request, c officeConfig) {
@@ -427,7 +436,13 @@ func officeCallback(w http.ResponseWriter, r *http.Request, c officeConfig) {
 		officeClear(bucket, key)
 		reply(0)
 	case 2, 6: // 2: đóng và có thay đổi, 6: lưu giữa chừng (forcesave)
-		if err := officeSave(r, cl, c, bucket, key, etag0, body); err != nil {
+		who := ""
+		if n := len(body.Users); n > 0 { // người sửa cuối trong phiên: id có dạng "<tài khoản>|<tên>"
+			if i := strings.Index(body.Users[n-1], "|"); i >= 0 {
+				who = body.Users[n-1][i+1:]
+			}
+		}
+		if err := officeSave(r, cl, c, bucket, key, etag0, body, who); err != nil {
 			log.Printf("viewio-office: lưu %s/%s thất bại: %v", bucket, key, err)
 			reply(1)
 			return
@@ -444,7 +459,7 @@ func officeCallback(w http.ResponseWriter, r *http.Request, c officeConfig) {
 	}
 }
 
-func officeSave(r *http.Request, cl *minio.Client, c officeConfig, bucket, key, etag0 string, body officeCallbackBody) error {
+func officeSave(r *http.Request, cl *minio.Client, c officeConfig, bucket, key, etag0 string, body officeCallbackBody, who string) error {
 	// Document Server trả URL theo tên miền công khai: đổi sang địa chỉ nội bộ để không đi vòng qua Internet
 	u, err := url.Parse(body.URL)
 	if err != nil || body.URL == "" {
@@ -483,10 +498,11 @@ func officeSave(r *http.Request, cl *minio.Client, c officeConfig, bucket, key, 
 	} else if minio.ToErrorResponse(err).StatusCode != http.StatusNotFound {
 		return err
 	}
-	info, err := cl.PutObject(ctx, bucket, target, resp.Body, -1, minio.PutObjectOptions{ContentType: ct, PartSize: 16 << 20})
+	info, err := cl.PutObject(ctx, bucket, target, resp.Body, -1, minio.PutObjectOptions{ContentType: ct, PartSize: 16 << 20, UserMetadata: editorMeta(who)})
 	if err != nil {
 		return err
 	}
+	recordActivity(activityEntry{Bucket: bucket, Actor: who, Op: "edit", Key: target, Via: "viewio"})
 	if target == key {
 		officeMu.Lock()
 		officeWritten[body.Key] = strings.Trim(info.ETag, "\"")
@@ -538,6 +554,7 @@ func fsNewDoc(w http.ResponseWriter, r *http.Request, c *minio.Client) {
 		uploadErr(w, err)
 		return
 	}
+	logActivity(r, req.Bucket, "create", key, "")
 	writeJSON(w, http.StatusOK, map[string]string{"key": key})
 }
 
@@ -647,5 +664,6 @@ func officeConvert(w http.ResponseWriter, r *http.Request, c officeConfig) {
 		uploadErr(w, err)
 		return
 	}
+	logActivity(r, req.Bucket, "create", parent+free, "")
 	writeJSON(w, http.StatusOK, map[string]string{"key": parent + free})
 }

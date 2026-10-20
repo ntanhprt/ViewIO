@@ -18,6 +18,9 @@ import {
   getUndo,
   isFavorite,
   canDrawioEdit,
+  convertOffice,
+  isLegacyOffice,
+  syncPrefs,
   canOfficeEdit,
   drawioEnabled,
   mkdir,
@@ -105,6 +108,7 @@ const ObjectContextMenu = ({
   useEffect(() => {
     officeEnabled().then(setOffice);
     drawioEnabled().then(setDrawio);
+    syncPrefs().then(() => bump((n) => n + 1));
   }, []);
 
   useEffect(() => {
@@ -294,11 +298,15 @@ const ObjectContextMenu = ({
     }
     const close = () => setMenu(null);
     window.addEventListener("click", close);
-    window.addEventListener("scroll", close, true);
-    window.addEventListener("resize", close);
+    // Chuột phải làm panel chi tiết mở ra → bắn resize/scroll ngay lập tức; chỉ đóng menu vì cuộn/đổi cỡ sau đó
+    const t = setTimeout(() => {
+      window.addEventListener("wheel", close, true);
+      window.addEventListener("resize", close);
+    }, 400);
     return () => {
+      clearTimeout(t);
       window.removeEventListener("click", close);
-      window.removeEventListener("scroll", close, true);
+      window.removeEventListener("wheel", close, true);
       window.removeEventListener("resize", close);
     };
   }, [menu]);
@@ -417,6 +425,26 @@ const ObjectContextMenu = ({
       }
       if (office && !singleIsDir && canOfficeEdit(single)) {
         entries.push({ label: "Sửa (Office)", act: () => setDialog({ t: "office", key: single }) });
+      }
+      if (office && !singleIsDir && isLegacyOffice(single)) {
+        entries.push({
+          label: "Sửa (chuyển sang định dạng mới)",
+          act: async () => {
+            if (!window.confirm("Sẽ tạo file mới (.docx/.xlsx/.pptx) cạnh file gốc rồi mở để sửa; file gốc giữ nguyên. Tiếp tục?")) {
+              return;
+            }
+            setBusy("Đang chuyển định dạng…");
+            try {
+              const nk = await convertOffice(bucketName, single);
+              dispatch(setReloadObjectsList(true));
+              setDialog({ t: "office", key: nk });
+            } catch (e: any) {
+              setProblem([e?.message || String(e)]);
+            } finally {
+              setBusy(null);
+            }
+          },
+        });
       }
     }
     if (items.length > 0) {

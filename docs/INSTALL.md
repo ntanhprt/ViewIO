@@ -542,3 +542,10 @@ Mở file `.drawio` / `.dio` rồi bấm icon bút chì (hoặc chuột phải �
 | `VIEWIO_DRAWIO_LAN_PORT` | Cổng draw.io khi vào ViewIO bằng IP/LAN (mặc định 21033) |
 
 draw.io chạy ở origin riêng nên nội dung sơ đồ không chạm được phiên Console. Lưu qua `/docview/fs/save` kèm ETag: người khác sửa trước thì hỏi trước khi ghi đè; bucket bật versioning thì giữ bản cũ. Service mẫu `viewio-drawio` nằm trong profile `office` của `docker-compose.yml`.
+
+## Hoàn thiện (1.9.0)
+
+- **Xoá an toàn**: hộp "Delete" cũ trên thanh công cụ giờ chuyển file vào Thùng rác (`.trash/`) theo mặc định; bật công tắc "Xoá vĩnh viễn" hoặc "Delete All Versions" mới xoá thẳng. Xoá một phiên bản cụ thể vẫn xoá thẳng. Nên đặt luật tự dọn: `mc ilm rule add <alias>/<bucket> --prefix ".trash/" --expire-days 30 --noncurrent-expire-days 1` (đã đặt cho các bucket của hệ thống này).
+- **Yêu thích / gần đây theo tài khoản**: lưu ở server (`GET/PUT /docview/fs/prefs`), đồng bộ giữa các máy. Thư mục lưu là `$VIEWIO_PREFS_DIR` (mặc định `$HOME/viewio-prefs`); cần `HOME` nằm trên volume để giữ qua lần tạo lại container (compose của hệ thống này đặt `HOME=/mc`). Không ghi được thì tự dùng localStorage.
+- **Trình soạn thảo text**: CodeMirror 6 (tô màu cú pháp theo đuôi file, đánh số dòng, undo/redo, tìm/thay thế Ctrl+F / Ctrl+H, thụt dòng bằng Tab, tự theo nền sáng/tối).
+- **Sửa Office đời cũ**: `.doc`/`.rtf` → `.docx`, `.xls` → `.xlsx`, `.ppt`/`.pps` → `.pptx`. Bấm sửa sẽ hỏi rồi tạo file mới cạnh file gốc (trùng tên thì thêm " (1)", file gốc giữ nguyên) và mở ONLYOFFICE (`POST /docview/office/convert`, giới hạn 100 MB).

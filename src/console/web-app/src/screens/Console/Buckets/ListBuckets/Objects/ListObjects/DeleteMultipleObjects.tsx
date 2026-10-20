@@ -26,6 +26,7 @@ import { IAM_SCOPES } from "../../../../../../common/SecureComponent/permissions
 import { useSelector } from "react-redux";
 import { BucketVersioningResponse } from "api/consoleApi";
 import { api } from "../../../../../../api";
+import { transfer } from "./fileOps";
 
 interface IDeleteObjectProps {
   closeDeleteModalAndRefresh: (refresh: boolean) => void;
@@ -53,6 +54,8 @@ const DeleteObject = ({
   const [deleteLoading, invokeDeleteApi] = useApi(onDelSuccess, onDelError);
 
   const [deleteVersions, setDeleteVersions] = useState<boolean>(false);
+  const [permanent, setPermanent] = useState<boolean>(false);
+  const [trashing, setTrashing] = useState<boolean>(false);
   const [bypassGovernance, setBypassGovernance] = useState<boolean>(false);
 
   const retentionConfig = useSelector(
@@ -69,6 +72,42 @@ const DeleteObject = ({
     return null;
   }
   const onConfirmDelete = () => {
+    // mặc định chuyển vào Thùng rác (khôi phục được); chỉ xoá thẳng khi chọn "xoá vĩnh viễn"/"xoá mọi phiên bản"
+    if (
+      !permanent &&
+      !deleteVersions &&
+      selectedObjects.every((o) => !o.startsWith(".trash/"))
+    ) {
+      setTrashing(true);
+      transfer({
+        op: "trash",
+        bucket: selectedBucket,
+        items: selectedObjects,
+        destBucket: selectedBucket,
+        destPrefix: "",
+      })
+        .then((r) => {
+          if (r.failed.length > 0) {
+            dispatch(
+              setErrorSnackMessage({
+                errorMessage: `Không chuyển vào thùng rác được: ${r.failed[0]}`,
+                detailedError: "",
+              }),
+            );
+          }
+          onDelSuccess();
+        })
+        .catch((e) =>
+          dispatch(
+            setErrorSnackMessage({
+              errorMessage: e?.message || String(e),
+              detailedError: "",
+            }),
+          ),
+        )
+        .finally(() => setTrashing(false));
+      return;
+    }
     let toSend = [];
     for (let i = 0; i < selectedObjects.length; i++) {
       if (selectedObjects[i].endsWith("/")) {
@@ -130,13 +169,31 @@ const DeleteObject = ({
       confirmText={"Delete"}
       isOpen={deleteOpen}
       titleIcon={<ConfirmDeleteIcon />}
-      isLoading={deleteLoading}
+      isLoading={deleteLoading || trashing}
       onConfirm={onConfirmDelete}
       onClose={onClose}
       confirmationContent={
         <Fragment>
           Are you sure you want to delete the selected {selectedObjects.length}{" "}
           objects?{" "}
+          <br />
+          <br />
+          <Switch
+            label={"Xoá vĩnh viễn (không vào Thùng rác)"}
+            indicatorLabels={["Có", "Không"]}
+            checked={permanent}
+            value={"permanent"}
+            id="delete-permanent"
+            name="delete-permanent"
+            onChange={() => setPermanent(!permanent)}
+            description=""
+          />
+          {!permanent && !deleteVersions ? (
+            <div style={{ marginTop: 6, fontSize: 12, opacity: 0.75 }}>
+              Mục sẽ được chuyển vào Thùng rác (chuột phải ở chỗ trống → Thùng rác để khôi phục).
+            </div>
+          ) : null}
+          <br />
           {isVersionedDelete && (
             <Fragment>
               <br />

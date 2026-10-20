@@ -20,6 +20,7 @@ import { previewObjectType } from "../utils";
 import { api } from "../../../../../../api";
 import { downloadObject } from "../../../../ObjectBrowser/utils";
 import { useAppDispatch } from "../../../../../../store";
+import { setReloadObjectsList } from "../../../../ObjectBrowser/objectBrowserSlice";
 import { BucketObject } from "../../../../../../api/consoleApi";
 import { formatBytes } from "./DocViewer/useFileData";
 import { Loading, Problem } from "./DocViewer/ViewerShell";
@@ -33,7 +34,7 @@ import HtmlViewer from "./DocViewer/HtmlViewer";
 import DrawioViewer from "./DocViewer/DrawioViewer";
 import TextEditor from "./DocViewer/TextEditor";
 import OfficeEditorOverlay from "../ListObjects/OfficeEditorOverlay";
-import { canOfficeEdit, drawioEnabled, info as fsInfo, officeEnabled } from "../ListObjects/fileOps";
+import { canOfficeEdit, convertOffice, drawioEnabled, info as fsInfo, isLegacyOffice, officeEnabled } from "../ListObjects/fileOps";
 import { useSelector } from "react-redux";
 import { AppState } from "../../../../../../store";
 
@@ -70,6 +71,8 @@ const PreviewFile = ({ bucketName, actualInfo, onResolved }: IPreviewFileProps) 
   const [drawioEditing, setDrawioEditing] = useState(false);
   const [officeEditing, setOfficeEditing] = useState(false);
   const [officeEtag, setOfficeEtag] = useState("");
+  const [officeKey, setOfficeKey] = useState(""); // file thật đang sửa (khác file đang xem khi vừa chuyển từ .doc/.xls/.ppt)
+  const [converting, setConverting] = useState(false);
   const [rev, setRev] = useState(0); // tăng sau khi lưu để các viewer đọc lại nội dung mới
   const anonymousMode = useSelector(
     (state: AppState) => state.system.anonymousMode,
@@ -133,7 +136,7 @@ const PreviewFile = ({ bucketName, actualInfo, onResolved }: IPreviewFileProps) 
     officeOn &&
     !anonymousMode &&
     ["docx", "excel", "office"].includes(objectType) &&
-    canOfficeEdit(objectName) &&
+    (canOfficeEdit(objectName) || isLegacyOffice(objectName)) &&
     (actualInfo as any)?.is_latest !== false;
   const latestPath = `${window.location.origin}${document.baseURI.replace(window.location.origin, "")}api/v1/buckets/${encodeURIComponent(bucketName)}/objects/download?preview=true&prefix=${encodeURIComponent(objectName)}`;
   const size = actualInfo?.size ? Number(actualInfo.size) : undefined;
@@ -163,7 +166,7 @@ const PreviewFile = ({ bucketName, actualInfo, onResolved }: IPreviewFileProps) 
     for (let i = 0; i < 20; i++) {
       await new Promise((r) => setTimeout(r, 2000));
       try {
-        if ((await fsInfo(bucketName, objectName)).etag !== before) {
+        if ((await fsInfo(bucketName, officeKey || objectName)).etag !== before) {
           setRev((n) => n + 1);
           return;
         }
@@ -191,7 +194,7 @@ const PreviewFile = ({ bucketName, actualInfo, onResolved }: IPreviewFileProps) 
     return (
       <OfficeEditorOverlay
         bucket={bucketName}
-        objectKey={objectName}
+        objectKey={officeKey || objectName}
         onClose={closeOffice}
       />
     );
@@ -235,9 +238,31 @@ const PreviewFile = ({ bucketName, actualInfo, onResolved }: IPreviewFileProps) 
         <button
           type="button"
           className="dv-edit-trigger"
+          disabled={converting}
           onClick={async () => {
+            let key = objectName;
+            if (isLegacyOffice(objectName)) {
+              if (
+                !window.confirm(
+                  "File định dạng cũ cần chuyển sang định dạng mới (.docx/.xlsx/.pptx) mới sửa được.\nViewIO sẽ tạo một file mới cạnh file gốc (file gốc giữ nguyên) rồi mở để sửa. Tiếp tục?",
+                )
+              ) {
+                return;
+              }
+              setConverting(true);
+              try {
+                key = await convertOffice(bucketName, objectName);
+                dispatch(setReloadObjectsList(true));
+              } catch (e: any) {
+                window.alert("Không chuyển được: " + (e?.message || e));
+                setConverting(false);
+                return;
+              }
+              setConverting(false);
+            }
+            setOfficeKey(key);
             try {
-              setOfficeEtag((await fsInfo(bucketName, objectName)).etag || "");
+              setOfficeEtag((await fsInfo(bucketName, key)).etag || "");
             } catch {
               setOfficeEtag("");
             }

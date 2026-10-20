@@ -25,6 +25,7 @@ import { hasPermission } from "../../../../../../common/SecureComponent";
 import { IAM_SCOPES } from "../../../../../../common/SecureComponent/permissions";
 import { useSelector } from "react-redux";
 import { isVersionedMode } from "../../../../../../utils/validationFunctions";
+import { transfer } from "./fileOps";
 import { BucketVersioningResponse } from "api/consoleApi";
 
 interface IDeleteObjectProps {
@@ -59,6 +60,8 @@ const DeleteObject = ({
 
   const [deleteLoading, invokeDeleteApi] = useApi(onDelSuccess, onDelError);
   const [deleteVersions, setDeleteVersions] = useState<boolean>(false);
+  const [permanent, setPermanent] = useState<boolean>(false);
+  const [trashing, setTrashing] = useState<boolean>(false);
   const [bypassGovernance, setBypassGovernance] = useState<boolean>(false);
 
   const retentionConfig = useSelector(
@@ -75,6 +78,43 @@ const DeleteObject = ({
     return null;
   }
   const onConfirmDelete = () => {
+    // mặc định chuyển vào Thùng rác (khôi phục được); xoá một phiên bản cụ thể / mọi phiên bản / "vĩnh viễn" thì xoá thẳng
+    if (
+      !permanent &&
+      !deleteVersions &&
+      selectedVersion === "" &&
+      !selectedObject.startsWith(".trash/")
+    ) {
+      setTrashing(true);
+      transfer({
+        op: "trash",
+        bucket: selectedBucket,
+        items: [selectedObject],
+        destBucket: selectedBucket,
+        destPrefix: "",
+      })
+        .then((r) => {
+          if (r.failed.length > 0) {
+            dispatch(
+              setErrorSnackMessage({
+                errorMessage: `Không chuyển vào thùng rác được: ${r.failed[0]}`,
+                detailedError: "",
+              }),
+            );
+          }
+          onDelSuccess();
+        })
+        .catch((e) =>
+          dispatch(
+            setErrorSnackMessage({
+              errorMessage: e?.message || String(e),
+              detailedError: "",
+            }),
+          ),
+        )
+        .finally(() => setTrashing(false));
+      return;
+    }
     const recursive = selectedObject.endsWith("/");
     invokeDeleteApi(
       "DELETE",
@@ -92,7 +132,7 @@ const DeleteObject = ({
       confirmText={"Delete"}
       isOpen={deleteOpen}
       titleIcon={<ConfirmDeleteIcon />}
-      isLoading={deleteLoading}
+      isLoading={deleteLoading || trashing}
       onConfirm={onConfirmDelete}
       onClose={onClose}
       confirmationContent={
@@ -112,6 +152,26 @@ const DeleteObject = ({
           )}
           ? <br />
           <br />
+          {selectedVersion === "" && (
+            <Fragment>
+              <Switch
+                label={"Xoá vĩnh viễn (không vào Thùng rác)"}
+                indicatorLabels={["Có", "Không"]}
+                checked={permanent}
+                value={"permanent"}
+                id="delete-permanent"
+                name="delete-permanent"
+                onChange={() => setPermanent(!permanent)}
+                description=""
+              />
+              {!permanent && !deleteVersions ? (
+                <div style={{ marginTop: 6, fontSize: 12, opacity: 0.75 }}>
+                  Mục sẽ được chuyển vào Thùng rác (chuột phải ở chỗ trống → Thùng rác để khôi phục).
+                </div>
+              ) : null}
+              <br />
+            </Fragment>
+          )}
           {isVersionedMode(versioningInfo?.status) &&
             selectedVersion === "" && (
               <Fragment>

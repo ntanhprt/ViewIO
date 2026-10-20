@@ -731,3 +731,16 @@ a.dv-btn {
 .dv-edit-trigger:hover {
   background: rgb(37, 99, 235);
 }
+
+.dv-edit-cm {
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+}
+.dv-edit-cm .cm-editor {
+  height: 100%;
+}
+.dv-edit-cm .cm-editor.cm-focused {
+  outline: none;
+}

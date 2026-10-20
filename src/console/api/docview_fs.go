@@ -89,6 +89,8 @@ func serveDocviewFs(w http.ResponseWriter, r *http.Request) {
 	}
 	action := strings.TrimPrefix(r.URL.Path, docviewFsPrefix)
 	switch {
+	case action == "prefs" && (r.Method == http.MethodGet || r.Method == http.MethodPut):
+		fsPrefs(w, r, principal.AccountAccessKey)
 	case action == "list" && r.Method == http.MethodGet:
 		fsList(w, r, client)
 	case action == "transfer" && r.Method == http.MethodPost:

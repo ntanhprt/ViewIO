@@ -2,11 +2,12 @@
 // Lưu qua /docview/fs/save kèm ETag lúc mở: người khác sửa trước thì báo xung đột thay vì ghi đè âm thầm.
 // Bucket bật versioning thì mỗi lần lưu giữ lại bản cũ.
 
-import React, { useCallback, useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { info, saveText } from "../../ListObjects/fileOps";
 import { Loading, Problem } from "./ViewerShell";
+import CodeMirrorArea from "./CodeMirrorArea";
 
 export const EDIT_LIMIT = 5 * 1024 * 1024;
 
@@ -29,7 +30,6 @@ const TextEditor = ({ bucket, objectKey, fileName, textPath, markdown, onClose }
   const [wrap, setWrap] = useState(true);
   const [preview, setPreview] = useState(markdown);
   const [savedOnce, setSavedOnce] = useState(false);
-  const area = useRef<HTMLTextAreaElement | null>(null);
 
   // etag lấy TRƯỚC khi đọc nội dung: nếu file đổi giữa chừng thì lúc lưu sẽ báo xung đột (phía an toàn)
   useEffect(() => {
@@ -122,17 +122,6 @@ const TextEditor = ({ bucket, objectKey, fileName, textPath, markdown, onClose }
     return () => window.removeEventListener("beforeunload", f);
   }, [dirty]);
 
-  const onTab = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    if (e.key === "Tab" && !e.shiftKey) {
-      e.preventDefault();
-      const el = e.currentTarget;
-      const { selectionStart: a, selectionEnd: b } = el;
-      const v = el.value.slice(0, a) + "  " + el.value.slice(b);
-      setText(v);
-      requestAnimationFrame(() => el.setSelectionRange(a + 2, a + 2));
-    }
-  };
-
   if (error) {
     return <Problem title="Không mở được để sửa" message={error} onDownload={() => onClose(false)} />;
   }
@@ -163,15 +152,7 @@ const TextEditor = ({ bucket, objectKey, fileName, textPath, markdown, onClose }
         </button>
       </div>
       <div className="dv-edit-body">
-        <textarea
-          ref={area}
-          className="dv-edit-area"
-          value={text}
-          spellCheck={false}
-          wrap={wrap ? "soft" : "off"}
-          onChange={(e) => setText(e.target.value)}
-          onKeyDown={onTab}
-        />
+        <CodeMirrorArea value={text} fileName={fileName} wrap={wrap} onChange={setText} />
         {markdown && preview ? (
           <div className="dv-edit-preview">
             <ReactMarkdown remarkPlugins={[remarkGfm]}>{text}</ReactMarkdown>

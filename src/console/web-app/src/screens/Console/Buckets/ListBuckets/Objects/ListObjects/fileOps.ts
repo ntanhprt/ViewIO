@@ -230,11 +230,55 @@ const loadList = (k: string): FsRef[] => {
     return [];
   }
 };
-const saveList = (k: string, v: FsRef[]) => {
+const saveList = (k: string, v: FsRef[], push = true) => {
   try {
     localStorage.setItem(k, JSON.stringify(v));
   } catch {
     // bỏ qua
+  }
+  if (push) {
+    pushPrefs();
+  }
+};
+
+// Yêu thích/gần đây đồng bộ theo tài khoản qua /docview/fs/prefs (server giữ bản chuẩn); lỗi thì dùng localStorage
+let pushTimer: any = null;
+const pushPrefs = () => {
+  clearTimeout(pushTimer);
+  pushTimer = setTimeout(() => {
+    fetch(url("prefs"), {
+      method: "PUT",
+      credentials: "same-origin",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ fav: getFavorites(), recent: getRecent() }),
+    }).catch(() => undefined);
+  }, 800);
+};
+
+let prefsSynced = false;
+export const syncPrefs = async () => {
+  if (prefsSynced) {
+    return;
+  }
+  prefsSynced = true;
+  try {
+    const res = await fetch(url("prefs"), { credentials: "same-origin" });
+    if (!res.ok) {
+      return;
+    }
+    const d = await res.json();
+    const sf: FsRef[] = d.fav || [];
+    const sr: FsRef[] = d.recent || [];
+    if (sf.length === 0 && sr.length === 0) {
+      if (getFavorites().length || getRecent().length) {
+        pushPrefs(); // lần đầu: đưa dữ liệu cục bộ lên server
+      }
+      return;
+    }
+    saveList("viewio.fav", sf, false);
+    saveList("viewio.recent", sr, false);
+  } catch {
+    // dùng localStorage
   }
 };
 
@@ -334,3 +378,28 @@ export const drawioEnabled = (): Promise<boolean> => {
 
 export const drawioEditorUrl = (bucket: string, key: string) =>
   `${window.location.origin}${base()}docview/drawio/editor?${new URLSearchParams({ bucket, key }).toString()}`;
+
+// ---- Office đời cũ (.doc/.xls/.ppt...): chuyển sang định dạng mới rồi mới sửa được ----
+export const LEGACY_OFFICE: Record<string, string> = {
+  doc: "docx",
+  rtf: "docx",
+  xls: "xlsx",
+  ppt: "pptx",
+  pps: "pptx",
+};
+export const isLegacyOffice = (name: string) =>
+  (name.split(".").pop() || "").toLowerCase() in LEGACY_OFFICE;
+
+export const convertOffice = async (bucket: string, key: string): Promise<string> => {
+  const res = await fetch(`${window.location.origin}${base()}docview/office/convert`, {
+    method: "POST",
+    credentials: "same-origin",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ bucket, key }),
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    throw new Error(data.detailedMessage || `Lỗi ${res.status}`);
+  }
+  return data.key;
+};

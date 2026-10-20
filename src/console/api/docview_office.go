@@ -227,6 +227,8 @@ func serveDocviewOffice(w http.ResponseWriter, r *http.Request) {
 		officeFile(w, r, c)
 	case action == "callback" && r.Method == http.MethodPost:
 		officeCallback(w, r, c)
+	case action == "convert" && r.Method == http.MethodPost:
+		officeConvert(w, r, c)
 	default:
 		http.Error(w, "not found", http.StatusNotFound)
 	}
@@ -537,4 +539,113 @@ func fsNewDoc(w http.ResponseWriter, r *http.Request, c *minio.Client) {
 		return
 	}
 	writeJSON(w, http.StatusOK, map[string]string{"key": key})
+}
+
+// Office đời cũ -> định dạng mới để sửa được: doc/rtf -> docx, xls -> xlsx, ppt/pps -> pptx.
+var officeLegacyTo = map[string]string{"doc": "docx", "rtf": "docx", "xls": "xlsx", "ppt": "pptx", "pps": "pptx"}
+
+// officeConvert chuyển file cũ sang định dạng mới bằng Document Server và ghi thành file MỚI cạnh file gốc
+// (file gốc giữ nguyên, trùng tên thì thêm " (1)"), trả về key của file mới để mở sửa.
+func officeConvert(w http.ResponseWriter, r *http.Request, c officeConfig) {
+	principal, err := auth.GetClaimsFromTokenInRequest(r)
+	if err != nil || principal == nil {
+		writeJSON(w, http.StatusUnauthorized, map[string]string{"detailedMessage": "unauthorized"})
+		return
+	}
+	sess, _ := auth.GetTokenFromRequest(r)
+	var req fsReq
+	if json.NewDecoder(http.MaxBytesReader(w, r.Body, 1<<20)).Decode(&req) != nil || req.Bucket == "" {
+		fsBadRequest(w, "bad request")
+		return
+	}
+	key := strings.TrimLeft(req.Key, "/")
+	ext := strings.ToLower(strings.TrimPrefix(path.Ext(key), "."))
+	to, ok := officeLegacyTo[ext]
+	if !ok {
+		fsBadRequest(w, "định dạng này không cần chuyển")
+		return
+	}
+	client, err := newMinioClient(principal, getClientIP(r))
+	if err != nil {
+		writeJSON(w, http.StatusInternalServerError, map[string]string{"detailedMessage": "storage client error"})
+		return
+	}
+	ctx := r.Context()
+	st, err := client.StatObject(ctx, req.Bucket, key, minio.StatObjectOptions{})
+	if err != nil {
+		uploadErr(w, err)
+		return
+	}
+	if st.Size > 100<<20 {
+		writeJSON(w, http.StatusRequestEntityTooLarge, map[string]string{"detailedMessage": "file lớn hơn 100 MB, hãy tải về để chuyển"})
+		return
+	}
+	tok := jwtSign(c.secret, map[string]interface{}{
+		"b": req.Bucket, "k": key, "e": strings.Trim(st.ETag, "\""), "s": sess, "u": principal.AccountAccessKey,
+		"exp": time.Now().Add(time.Hour).Unix(),
+	})
+	kb := make([]byte, 12)
+	_, _ = rand.Read(kb)
+	params := map[string]interface{}{
+		"async": false, "filetype": ext, "outputtype": to, "title": path.Base(key),
+		"key": "cv" + hex.EncodeToString(kb),
+		"url": c.callback + "/docview/office/file?t=" + url.QueryEscape(tok),
+	}
+	body, _ := json.Marshal(params)
+	params["token"] = jwtSign(c.secret, params)
+	body, _ = json.Marshal(params)
+	req2, _ := http.NewRequestWithContext(ctx, http.MethodPost, c.internal+"/ConvertService.ashx", strings.NewReader(string(body)))
+	req2.Header.Set("Content-Type", "application/json")
+	req2.Header.Set("Accept", "application/json")
+	req2.Header.Set("Authorization", "Bearer "+jwtSign(c.secret, map[string]interface{}{"payload": json.RawMessage(body)}))
+	resp, err := (&http.Client{Timeout: 3 * time.Minute}).Do(req2)
+	if err != nil {
+		writeJSON(w, http.StatusBadGateway, map[string]string{"detailedMessage": "không gọi được máy chủ Office: " + err.Error()})
+		return
+	}
+	var cr struct {
+		EndConvert bool   `json:"endConvert"`
+		FileURL    string `json:"fileUrl"`
+		Error      int    `json:"error"`
+	}
+	rb, _ := io.ReadAll(io.LimitReader(resp.Body, 1<<20))
+	resp.Body.Close()
+	if json.Unmarshal(rb, &cr) != nil || cr.Error != 0 || !cr.EndConvert || cr.FileURL == "" {
+		log.Printf("viewio-office: convert %s/%s lỗi: %s", req.Bucket, key, string(rb))
+		writeJSON(w, http.StatusBadGateway, map[string]string{"detailedMessage": "máy chủ Office không chuyển được file này"})
+		return
+	}
+	u, err := url.Parse(cr.FileURL)
+	if err != nil {
+		writeJSON(w, http.StatusBadGateway, map[string]string{"detailedMessage": "địa chỉ kết quả không hợp lệ"})
+		return
+	}
+	src := c.internal + u.EscapedPath()
+	if u.RawQuery != "" {
+		src += "?" + u.RawQuery
+	}
+	dreq, _ := http.NewRequestWithContext(ctx, http.MethodGet, src, nil)
+	dresp, err := (&http.Client{Timeout: 5 * time.Minute}).Do(dreq)
+	if err != nil || dresp.StatusCode != http.StatusOK {
+		writeJSON(w, http.StatusBadGateway, map[string]string{"detailedMessage": "không tải được file đã chuyển"})
+		return
+	}
+	defer dresp.Body.Close()
+	parent := fsParent(key)
+	name := strings.TrimSuffix(path.Base(key), path.Ext(key)) + "." + to
+	free, err := fsFreeName(ctx, client, req.Bucket, parent, name, false)
+	if err != nil {
+		uploadErr(w, err)
+		return
+	}
+	ct := map[string]string{
+		"docx": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+		"xlsx": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+		"pptx": "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+	}[to]
+	if _, err := client.PutObject(ctx, req.Bucket, parent+free, dresp.Body, -1, minio.PutObjectOptions{ContentType: ct, PartSize: 16 << 20}); err != nil {
+		uploadErr(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]string{"key": parent + free})
 }

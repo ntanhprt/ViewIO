@@ -14,7 +14,7 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { useSelector } from "react-redux";
 import PreviewFileContent from "./PreviewFileContent";
 import { BucketObject } from "../../../../../../api/consoleApi";
@@ -22,6 +22,7 @@ import { AppState, useAppDispatch } from "../../../../../../store";
 import { setSelectedPreview } from "../../../../ObjectBrowser/objectBrowserSlice";
 import { downloadObject } from "../../../../ObjectBrowser/utils";
 import { ViewerShell } from "./DocViewer/ViewerShell";
+import { FsHit, listImages } from "../ListObjects/fileOps";
 
 interface IPreviewFileProps {
   open: boolean;
@@ -47,14 +48,43 @@ const PreviewFileModal = ({
   const records = useSelector((state: AppState) => state.objectBrowser.records);
 
   const name = actualInfo?.name || "";
+  const dir = dirOf(name);
+
+  // Danh sách ảnh của thư mục lấy từ máy chủ (đủ cả khi danh sách trên màn hình chưa tải hết / mở từ tìm kiếm, yêu thích)
+  const [server, setServer] = useState<{ bucket: string; dir: string; items: FsHit[] } | null>(null);
+  useEffect(() => {
+    if (!open || !name || !isImageName(name)) {
+      return;
+    }
+    if (server && server.bucket === bucketName && server.dir === dir) {
+      return;
+    }
+    let alive = true;
+    listImages(bucketName, dir)
+      .then((items) => alive && setServer({ bucket: bucketName, dir, items }))
+      .catch(() => undefined);
+    return () => {
+      alive = false;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, bucketName, dir, name]);
 
   // Đang xem ảnh: gom các ảnh cùng thư mục (theo danh sách đang mở) để chuyển qua lại, sắp xếp theo tên (số theo giá trị)
   const siblings = useMemo(() => {
     if (!open || !name || !isImageName(name)) {
       return [] as BucketObject[];
     }
-    const dir = dirOf(name);
-    return (records as BucketObject[])
+    // ưu tiên danh sách máy chủ; trong lúc chờ thì dùng danh sách đang hiển thị
+    const fromServer: BucketObject[] | null =
+      server && server.bucket === bucketName && server.dir === dir
+        ? server.items.map((h) => ({
+            name: h.key,
+            size: h.size,
+            last_modified: h.modified,
+            version_id: "",
+          }))
+        : null;
+    return (fromServer || (records as BucketObject[]))
       .filter(
         (o) =>
           o.name &&
@@ -66,7 +96,7 @@ const PreviewFileModal = ({
       .sort((a, b) =>
         collator.compare(a.name!.slice(dir.length), b.name!.slice(dir.length)),
       );
-  }, [open, name, records]);
+  }, [open, name, dir, records, server, bucketName]);
   const idx = siblings.findIndex((o) => o.name === name);
 
   if (!open) {

@@ -403,3 +403,9 @@ export const convertOffice = async (bucket: string, key: string): Promise<string
   }
   return data.key;
 };
+
+// Ảnh nằm trực tiếp trong một thư mục (danh sách lấy từ máy chủ, đủ cả khi danh sách trên màn hình chưa tải hết)
+export const listImages = async (bucket: string, dir: string): Promise<FsHit[]> => {
+  const d = await getJson("images", { bucket, dir });
+  return d.images || [];
+};

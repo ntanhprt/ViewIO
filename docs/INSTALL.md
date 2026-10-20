@@ -552,4 +552,4 @@ draw.io chạy ở origin riêng nên nội dung sơ đồ không chạm đượ
 
 ## Xem ảnh theo thư mục (1.9.1)
 
-Mở một ảnh thì viewer cho chuyển sang ảnh trước/sau trong cùng thư mục (theo danh sách đang mở, sắp xếp theo tên với số theo giá trị: img2 trước img10): nút ‹ › trên thanh công cụ, mũi tên hai bên khung ảnh, phím ← →, có bộ đếm "3 / 25", quay vòng ở đầu/cuối và nạp trước ảnh kế bên. Zoom (nút, cuộn chuột), xoay, lật, kéo ảnh, "Vừa khung" / 100% dùng như cũ.
+Mở một ảnh thì viewer cho chuyển sang ảnh trước/sau trong cùng thư mục (danh sách lấy từ máy chủ qua `GET /docview/fs/images`, nên đủ cả khi mở ảnh từ tìm kiếm / yêu thích hoặc danh sách chưa tải hết; sắp xếp theo tên với số theo giá trị: img2 trước img10): nút ‹ › trên thanh công cụ, mũi tên hai bên khung ảnh, phím ← →, có bộ đếm "3 / 25", quay vòng ở đầu/cuối và nạp trước ảnh kế bên. Zoom (nút, cuộn chuột), xoay, lật, kéo ảnh, "Vừa khung" / 100% dùng như cũ.

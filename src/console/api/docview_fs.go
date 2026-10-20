@@ -101,6 +101,8 @@ func serveDocviewFs(w http.ResponseWriter, r *http.Request) {
 		fsNewDoc(w, r, client)
 	case action == "purge" && r.Method == http.MethodPost:
 		fsPurge(w, r, client)
+	case action == "images" && r.Method == http.MethodGet:
+		fsImages(w, r, client)
 	case action == "search" && r.Method == http.MethodGet:
 		fsSearch(w, r, client)
 	case action == "info" && r.Method == http.MethodGet:

@@ -37,6 +37,7 @@ import (
 //	POST /docview/fs/mkdir    {bucket,key}      tạo thư mục (key kết thúc "/") hoặc file trống; 409 nếu đã tồn tại
 //	POST /docview/fs/purge    {bucket,items}    xoá vĩnh viễn — CHỈ cho phép mục nằm trong .trash/
 //	GET  /docview/fs/search   ?bucket&prefix&q&type&days&limit   tìm đệ quy theo tên file
+//	GET  /docview/fs/images   ?bucket&dir      các file ảnh nằm trực tiếp trong thư mục (cho viewer ảnh chuyển trước/sau)
 //	GET  /docview/fs/info     ?bucket&key       thuộc tính file / thư mục (đếm file, tổng dung lượng)
 //	PUT  /docview/fs/save     ?bucket&key&etag  body = nội dung mới (text); 409 nếu etag không còn khớp (người khác đã sửa)
 //	GET  /docview/fs/zip      ?bucket&key=..&key=..&name=       tải nhiều mục/thư mục thành .zip (stream)
@@ -394,4 +395,36 @@ func fsSave(w http.ResponseWriter, r *http.Request, c *minio.Client) {
 		return
 	}
 	writeJSON(w, http.StatusOK, map[string]string{"etag": info.ETag, "versionId": info.VersionID})
+}
+
+var fsImageExts = map[string]bool{"png": true, "jpg": true, "jpeg": true, "gif": true, "webp": true, "bmp": true, "svg": true, "avif": true, "ico": true, "apng": true}
+
+// fsImages liệt kê ảnh nằm trực tiếp trong một thư mục (không đệ quy, bỏ qua thùng rác và mục đã xoá).
+func fsImages(w http.ResponseWriter, r *http.Request, c *minio.Client) {
+	bucket := r.URL.Query().Get("bucket")
+	dir := strings.TrimLeft(r.URL.Query().Get("dir"), "/")
+	if bucket == "" {
+		fsBadRequest(w, "missing bucket")
+		return
+	}
+	if dir != "" && !strings.HasSuffix(dir, "/") {
+		dir += "/"
+	}
+	hits := []fsHit{}
+	truncated := false
+	for o := range c.ListObjects(r.Context(), bucket, minio.ListObjectsOptions{Prefix: dir}) {
+		if o.Err != nil {
+			uploadErr(w, o.Err)
+			return
+		}
+		if strings.HasSuffix(o.Key, "/") || !fsImageExts[strings.ToLower(strings.TrimPrefix(path.Ext(o.Key), "."))] {
+			continue
+		}
+		if len(hits) >= 5000 {
+			truncated = true
+			break
+		}
+		hits = append(hits, fsHit{Key: o.Key, Size: o.Size, Modified: o.LastModified})
+	}
+	writeJSON(w, http.StatusOK, map[string]interface{}{"images": hits, "truncated": truncated})
 }

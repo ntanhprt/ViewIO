@@ -43,6 +43,14 @@ interface IPreviewFileProps {
   actualInfo: BucketObject;
   // báo lên khung (Modal) để hiện loại file + dung lượng trên thanh tiêu đề
   onResolved?: (info: { badge: string; subtitle: string }) => void;
+  // chuyển ảnh trước/sau trong cùng thư mục (chỉ khi đang xem ảnh)
+  nav?: {
+    index: number;
+    total: number;
+    prev: BucketObject;
+    next: BucketObject;
+    go: (o: BucketObject) => void;
+  };
 }
 
 const BADGES: Record<string, string> = {
@@ -61,7 +69,7 @@ const BADGES: Record<string, string> = {
   none: "",
 };
 
-const PreviewFile = ({ bucketName, actualInfo, onResolved }: IPreviewFileProps) => {
+const PreviewFile = ({ bucketName, actualInfo, onResolved, nav }: IPreviewFileProps) => {
   const dispatch = useAppDispatch();
   const [metaData, setMetaData] = useState<any>(null);
   const [isMetaDataLoaded, setIsMetaDataLoaded] = useState(false);
@@ -292,7 +300,26 @@ const PreviewFile = ({ bucketName, actualInfo, onResolved }: IPreviewFileProps) 
         </button>
       )}
       {objectType === "pdf" && <PdfViewer file={path} onDownload={download} />}
-      {objectType === "image" && <ImageViewer src={path} onDownload={download} />}
+      {objectType === "image" && (
+        <ImageViewer
+          src={path}
+          onDownload={download}
+          nav={
+            nav
+              ? {
+                  index: nav.index,
+                  total: nav.total,
+                  onPrev: () => nav.go(nav.prev),
+                  onNext: () => nav.go(nav.next),
+                  preload: [nav.prev, nav.next].map(
+                    (o) =>
+                      `${window.location.origin}${document.baseURI.replace(window.location.origin, "")}api/v1/buckets/${encodeURIComponent(bucketName)}/objects/download?preview=true&prefix=${encodeURIComponent(o.name || "")}${o.version_id ? `&version_id=${o.version_id}` : ""}`,
+                  ),
+                }
+              : undefined
+          }
+        />
+      )}
       {objectType === "video" && (
         <div className="dv-media">
           <video src={path} controls autoPlay playsInline />

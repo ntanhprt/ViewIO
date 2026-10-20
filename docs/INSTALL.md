@@ -549,3 +549,7 @@ draw.io chạy ở origin riêng nên nội dung sơ đồ không chạm đượ
 - **Yêu thích / gần đây theo tài khoản**: lưu ở server (`GET/PUT /docview/fs/prefs`), đồng bộ giữa các máy. Thư mục lưu là `$VIEWIO_PREFS_DIR` (mặc định `$HOME/viewio-prefs`); cần `HOME` nằm trên volume để giữ qua lần tạo lại container (compose của hệ thống này đặt `HOME=/mc`). Không ghi được thì tự dùng localStorage.
 - **Trình soạn thảo text**: CodeMirror 6 (tô màu cú pháp theo đuôi file, đánh số dòng, undo/redo, tìm/thay thế Ctrl+F / Ctrl+H, thụt dòng bằng Tab, tự theo nền sáng/tối).
 - **Sửa Office đời cũ**: `.doc`/`.rtf` → `.docx`, `.xls` → `.xlsx`, `.ppt`/`.pps` → `.pptx`. Bấm sửa sẽ hỏi rồi tạo file mới cạnh file gốc (trùng tên thì thêm " (1)", file gốc giữ nguyên) và mở ONLYOFFICE (`POST /docview/office/convert`, giới hạn 100 MB).
+
+## Xem ảnh theo thư mục (1.9.1)
+
+Mở một ảnh thì viewer cho chuyển sang ảnh trước/sau trong cùng thư mục (theo danh sách đang mở, sắp xếp theo tên với số theo giá trị: img2 trước img10): nút ‹ › trên thanh công cụ, mũi tên hai bên khung ảnh, phím ← →, có bộ đếm "3 / 25", quay vòng ở đầu/cuối và nạp trước ảnh kế bên. Zoom (nút, cuộn chuột), xoay, lật, kéo ảnh, "Vừa khung" / 100% dùng như cũ.

@@ -20,9 +20,16 @@ import { Loading, Problem } from "./ViewerShell";
 interface IImageViewerProps {
   src: string;
   onDownload: () => void;
+  nav?: {
+    index: number;
+    total: number;
+    onPrev: () => void;
+    onNext: () => void;
+    preload: string[];
+  };
 }
 
-const ImageViewer = ({ src, onDownload }: IImageViewerProps) => {
+const ImageViewer = ({ src, onDownload, nav }: IImageViewerProps) => {
   const [loaded, setLoaded] = useState(false);
   const [failed, setFailed] = useState(false);
   const [scale, setScale] = useState(1);
@@ -64,6 +71,32 @@ const ImageViewer = ({ src, onDownload }: IImageViewerProps) => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [loaded, rot]);
 
+  // ← / → chuyển ảnh; nạp trước ảnh kế tiếp và ảnh trước để chuyển tức thì
+  useEffect(() => {
+    if (!nav) {
+      return;
+    }
+    nav.preload.forEach((u) => {
+      const im = new Image();
+      im.src = u;
+    });
+    const onKey = (e: KeyboardEvent) => {
+      if ((e.target as HTMLElement)?.closest?.("input, textarea, select")) {
+        return;
+      }
+      if (e.key === "ArrowLeft") {
+        e.preventDefault();
+        nav.onPrev();
+      } else if (e.key === "ArrowRight") {
+        e.preventDefault();
+        nav.onNext();
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [nav?.index, nav?.total, src]);
+
   useEffect(() => {
     const el = stage.current;
     if (!el) {
@@ -93,6 +126,20 @@ const ImageViewer = ({ src, onDownload }: IImageViewerProps) => {
   return (
     <div style={{ display: "flex", flexDirection: "column", flex: 1, minWidth: 0 }}>
       <div className="dv-toolbar">
+        {nav ? (
+          <>
+            <button className="dv-btn" title="Ảnh trước (←)" onClick={nav.onPrev}>
+              ‹
+            </button>
+            <span className="dv-info">
+              {nav.index + 1} / {nav.total}
+            </span>
+            <button className="dv-btn" title="Ảnh sau (→)" onClick={nav.onNext}>
+              ›
+            </button>
+            <span className="dv-sep" />
+          </>
+        ) : null}
         <button className="dv-btn" onClick={() => zoomBy(1 / 1.25)}>
           −
         </button>
@@ -152,6 +199,30 @@ const ImageViewer = ({ src, onDownload }: IImageViewerProps) => {
         onDoubleClick={reset}
       >
         {!loaded ? <Loading /> : null}
+        {nav ? (
+          <>
+            <button
+              type="button"
+              className="dv-navbtn dv-navprev"
+              aria-label="Ảnh trước"
+              onMouseDown={(e) => e.stopPropagation()}
+              onDoubleClick={(e) => e.stopPropagation()}
+              onClick={nav.onPrev}
+            >
+              ‹
+            </button>
+            <button
+              type="button"
+              className="dv-navbtn dv-navnext"
+              aria-label="Ảnh sau"
+              onMouseDown={(e) => e.stopPropagation()}
+              onDoubleClick={(e) => e.stopPropagation()}
+              onClick={nav.onNext}
+            >
+              ›
+            </button>
+          </>
+        ) : null}
         <img
           ref={img}
           src={src}

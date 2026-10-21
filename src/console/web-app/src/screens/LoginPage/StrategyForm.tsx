@@ -148,7 +148,12 @@ const StrategyForm = ({ redirectRules }: { redirectRules: RedirectRule[] }) => {
                 id={"redirect-rules"}
                 options={ssoOptions}
                 selectedOption={""}
-                onSelect={(nValue) => submitSSOInitRequest(nValue)}
+                // ViewIO: Enter ở ô đăng nhập không được tự chọn mục SSO đầu tiên khi menu SSO đang đóng
+                onSelect={(nValue) => {
+                  if (ssoOptionsOpen) {
+                    submitSSOInitRequest(nValue);
+                  }
+                }}
                 hideTriggerAction={() => {
                   ssoOptionsSetOpen(false);
                 }}

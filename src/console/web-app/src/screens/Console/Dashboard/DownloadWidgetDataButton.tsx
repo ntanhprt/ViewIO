@@ -142,7 +142,12 @@ const DownloadWidgetDataButton = ({
             { label: "Download as PNG", value: "png" },
           ]}
           selectedOption={""}
-          onSelect={(value) => handleSelectedOption(value)}
+          // ViewIO: chỉ nhận khi menu đang mở (mds nghe Enter toàn trang kể cả khi menu đóng)
+          onSelect={(value) => {
+            if (openDownloadMenu) {
+              handleSelectedOption(value);
+            }
+          }}
           hideTriggerAction={() => {
             handleCloseDownload();
           }}

@@ -71,7 +71,12 @@ const InputUnitMenu = ({
         id={"upload-main-menu"}
         options={unitsList}
         selectedOption={""}
-        onSelect={(value) => handleClose(value)}
+        // ViewIO: DropdownSelector của mds nghe Enter toàn trang kể cả khi menu đóng; chỉ nhận khi menu đang mở
+        onSelect={(value) => {
+          if (open) {
+            handleClose(value);
+          }
+        }}
         hideTriggerAction={() => {
           handleClose("");
         }}

@@ -29,6 +29,7 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"mime"
 	"net"
 	"net/http"
 	"net/url"
@@ -531,8 +532,12 @@ func fsNewDoc(w http.ResponseWriter, r *http.Request, c *minio.Client) {
 	case "drawio":
 		data = []byte(drawioBlankXML)
 	default:
-		fsBadRequest(w, "chỉ hỗ trợ .docx .xlsx .pptx .drawio")
-		return
+		tpl, okText := newTextTemplates[ext]
+		if !okText {
+			fsBadRequest(w, "định dạng này không tạo mới được")
+			return
+		}
+		data = []byte(tpl)
 	}
 	ctx := r.Context()
 	taken, err := fsExists(ctx, c, req.Bucket, key, false)
@@ -550,6 +555,13 @@ func fsNewDoc(w http.ResponseWriter, r *http.Request, c *minio.Client) {
 		"pptx":   "application/vnd.openxmlformats-officedocument.presentationml.presentation",
 		"drawio": "application/vnd.jgraph.mxfile",
 	}[ext]
+	if ct == "" {
+		if m := mime.TypeByExtension("." + ext); m != "" {
+			ct = m
+		} else {
+			ct = "text/plain; charset=utf-8"
+		}
+	}
 	if _, err := c.PutObject(ctx, req.Bucket, key, strings.NewReader(string(data)), int64(len(data)), minio.PutObjectOptions{ContentType: ct}); err != nil {
 		uploadErr(w, err)
 		return
@@ -666,4 +678,31 @@ func officeConvert(w http.ResponseWriter, r *http.Request, c officeConfig) {
 	}
 	logActivity(r, req.Bucket, "create", parent+free, "")
 	writeJSON(w, http.StatusOK, map[string]string{"key": parent + free})
+}
+
+// Nội dung khởi tạo cho file văn bản tạo mới (nút "+ Mới"): đuôi nào có ở đây thì tạo được và sửa được bằng trình soạn thảo text.
+var newTextTemplates = map[string]string{
+	"md":       "# Tiêu đề\n\n",
+	"markdown": "# Tiêu đề\n\n",
+	"txt":      "",
+	"csv":      "",
+	"tsv":      "",
+	"json":     "{}\n",
+	"jsonl":    "",
+	"yaml":     "",
+	"yml":      "",
+	"xml":      "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n",
+	"html":     "<!doctype html>\n<html lang=\"vi\">\n<head>\n  <meta charset=\"utf-8\">\n  <title>Tiêu đề</title>\n</head>\n<body>\n\n</body>\n</html>\n",
+	"htm":      "<!doctype html>\n<html lang=\"vi\">\n<head>\n  <meta charset=\"utf-8\">\n  <title>Tiêu đề</title>\n</head>\n<body>\n\n</body>\n</html>\n",
+	"css":      "",
+	"js":       "",
+	"ts":       "",
+	"py":       "",
+	"sh":       "#!/usr/bin/env bash\n",
+	"sql":      "",
+	"log":      "",
+	"ini":      "",
+	"toml":     "",
+	"conf":     "",
+	"env":      "",
 }

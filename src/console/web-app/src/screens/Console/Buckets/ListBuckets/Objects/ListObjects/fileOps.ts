@@ -426,3 +426,32 @@ export interface ActivityEntry {
 
 export const getActivity = async (): Promise<{ entries: ActivityEntry[]; now: number }> =>
   getJson("activity", { limit: "100" });
+
+// ---- Menu "+ Mới" (giống Google Drive): các loại file/thư mục tạo được ngay trong thư mục hiện tại ----
+export interface NewType {
+  id: string;
+  label: string;
+  ext: string; // "" = thư mục hoặc tự nhập
+  group: "folder" | "office" | "drawio" | "text" | "custom";
+  badge: string;
+  color: string;
+}
+
+export const NEW_TYPES: NewType[] = [
+  { id: "folder", label: "Thư mục", ext: "", group: "folder", badge: "📁", color: "#8a8f98" },
+  { id: "docx", label: "Tài liệu Word", ext: "docx", group: "office", badge: "W", color: "#2b579a" },
+  { id: "xlsx", label: "Bảng tính Excel", ext: "xlsx", group: "office", badge: "X", color: "#217346" },
+  { id: "pptx", label: "Bài trình chiếu PowerPoint", ext: "pptx", group: "office", badge: "P", color: "#d24726" },
+  { id: "drawio", label: "Sơ đồ draw.io", ext: "drawio", group: "drawio", badge: "◇", color: "#f08705" },
+  { id: "md", label: "Markdown (.md)", ext: "md", group: "text", badge: "M", color: "#4b5563" },
+  { id: "txt", label: "Văn bản (.txt)", ext: "txt", group: "text", badge: "T", color: "#6b7280" },
+  { id: "csv", label: "Bảng CSV (.csv)", ext: "csv", group: "text", badge: "C", color: "#0f9d58" },
+  { id: "json", label: "JSON (.json)", ext: "json", group: "text", badge: "{}", color: "#b7791f" },
+  { id: "html", label: "Trang HTML (.html)", ext: "html", group: "text", badge: "<>", color: "#e34c26" },
+  { id: "yaml", label: "YAML (.yaml)", ext: "yaml", group: "text", badge: "Y", color: "#cb171e" },
+  { id: "xml", label: "XML (.xml)", ext: "xml", group: "text", badge: "‹›", color: "#7c3aed" },
+  { id: "other", label: "File văn bản khác…", ext: "", group: "custom", badge: "＋", color: "#2563eb" },
+];
+
+export const requestNew = (id: string) =>
+  window.dispatchEvent(new CustomEvent("viewio-new", { detail: { id } }));

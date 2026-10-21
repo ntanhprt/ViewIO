@@ -1,4 +1,5 @@
 // ViewIO: ô soạn thảo CodeMirror 6 (tô màu cú pháp, đánh số dòng, undo/redo, tìm/thay thế Ctrl+F / Ctrl+H, thụt dòng bằng Tab).
+// Màu lấy từ các biến CSS của viewer (--dv-*, --hl-*) nên tự khớp mọi theme và chế độ sáng/tối.
 
 import React, { useEffect, useRef } from "react";
 import { Compartment, EditorState, Extension } from "@codemirror/state";
@@ -18,14 +19,14 @@ import {
 } from "@codemirror/commands";
 import {
   bracketMatching,
-  defaultHighlightStyle,
   foldGutter,
+  HighlightStyle,
   indentOnInput,
   StreamLanguage,
   syntaxHighlighting,
 } from "@codemirror/language";
+import { tags as t } from "@lezer/highlight";
 import { highlightSelectionMatches, searchKeymap } from "@codemirror/search";
-import { oneDark } from "@codemirror/theme-one-dark";
 import { markdown } from "@codemirror/lang-markdown";
 import { javascript } from "@codemirror/lang-javascript";
 import { json } from "@codemirror/lang-json";
@@ -113,14 +114,62 @@ const language = (ext: string): Extension => {
   }
 };
 
-// nền tối hay sáng: đo độ sáng của màu nền thật của trang để chọn bảng màu cú pháp
-const isDarkPage = () => {
-  const m = /rgba?\((\d+),\s*(\d+),\s*(\d+)/.exec(getComputedStyle(document.body).backgroundColor);
-  if (!m) {
-    return window.matchMedia?.("(prefers-color-scheme: dark)").matches ?? false;
-  }
-  return (0.299 * +m[1] + 0.587 * +m[2] + 0.114 * +m[3]) / 255 < 0.45;
-};
+// Màu cú pháp theo biến CSS của viewer: đổi theme/chế độ tối là đổi theo, không phụ thuộc bảng màu cố định của CodeMirror
+const highlight = HighlightStyle.define([
+  { tag: [t.keyword, t.operatorKeyword, t.controlKeyword, t.definitionKeyword, t.moduleKeyword], color: "var(--hl-keyword)" },
+  { tag: [t.string, t.special(t.string), t.regexp, t.inserted], color: "var(--hl-string)" },
+  { tag: [t.number, t.bool, t.null, t.atom, t.literal], color: "var(--hl-number)" },
+  { tag: [t.comment, t.lineComment, t.blockComment, t.docComment], color: "var(--hl-comment)", fontStyle: "italic" },
+  { tag: [t.heading, t.heading1, t.heading2, t.heading3, t.heading4, t.heading5, t.heading6], color: "var(--hl-title)", fontWeight: "bold" },
+  { tag: [t.function(t.variableName), t.className, t.typeName, t.definition(t.variableName), t.labelName, t.tagName], color: "var(--hl-title)" },
+  { tag: [t.propertyName, t.attributeName, t.attributeValue, t.namespace], color: "var(--hl-attr)" },
+  { tag: [t.link, t.url], color: "var(--dv-accent)", textDecoration: "underline" },
+  { tag: t.strong, fontWeight: "bold" },
+  { tag: t.emphasis, fontStyle: "italic" },
+  { tag: t.strikethrough, textDecoration: "line-through" },
+  { tag: t.monospace, color: "var(--hl-string)" },
+  { tag: [t.processingInstruction, t.meta, t.contentSeparator], color: "var(--hl-comment)" },
+  { tag: t.invalid, color: "var(--hl-keyword)" },
+]);
+
+const theme = EditorView.theme({
+  "&": {
+    height: "100%",
+    fontSize: "13px",
+    color: "var(--dv-text)",
+    backgroundColor: "var(--dv-code-bg)",
+  },
+  ".cm-scroller": {
+    fontFamily: "ui-monospace, SFMono-Regular, Menlo, Consolas, monospace",
+    lineHeight: "1.6",
+  },
+  ".cm-content": { caretColor: "var(--dv-accent)" },
+  ".cm-cursor, .cm-dropCursor": { borderLeftColor: "var(--dv-accent)", borderLeftWidth: "2px" },
+  "&.cm-focused .cm-selectionBackground, .cm-selectionBackground, .cm-content ::selection": {
+    backgroundColor: "color-mix(in srgb, var(--dv-accent) 35%, transparent)",
+  },
+  ".cm-gutters": {
+    backgroundColor: "var(--dv-panel)",
+    color: "var(--dv-muted)",
+    borderRight: "1px solid var(--dv-border)",
+  },
+  ".cm-activeLine": { backgroundColor: "var(--dv-hover)" },
+  ".cm-activeLineGutter": { backgroundColor: "var(--dv-hover)", color: "var(--dv-text)" },
+  ".cm-selectionMatch": { backgroundColor: "var(--dv-mark)" },
+  "&.cm-focused .cm-matchingBracket": { backgroundColor: "var(--dv-mark)", outline: "1px solid var(--dv-accent)" },
+  ".cm-foldPlaceholder": { backgroundColor: "var(--dv-hover)", color: "var(--dv-muted)", border: "none" },
+  // ô tìm/thay thế (Ctrl+F)
+  ".cm-panels": { backgroundColor: "var(--dv-panel)", color: "var(--dv-text)", borderColor: "var(--dv-border)" },
+  ".cm-panels input, .cm-panels button": {
+    backgroundColor: "var(--dv-code-bg)",
+    color: "var(--dv-text)",
+    border: "1px solid var(--dv-border)",
+    borderRadius: "4px",
+  },
+  ".cm-searchMatch": { backgroundColor: "var(--dv-mark)", outline: "1px solid var(--dv-mark-active)" },
+  ".cm-searchMatch.cm-searchMatch-selected": { backgroundColor: "var(--dv-mark-active)" },
+  ".cm-tooltip": { backgroundColor: "var(--dv-panel)", color: "var(--dv-text)", border: "1px solid var(--dv-border)" },
+});
 
 interface IProps {
   value: string;
@@ -142,7 +191,6 @@ const CodeMirrorArea = ({ value, fileName, wrap, onChange }: IProps) => {
     }
     const lower = fileName.toLowerCase();
     const ext = lower === "dockerfile" ? "dockerfile" : lower.split(".").pop() || "";
-    const dark = isDarkPage();
     const state = EditorState.create({
       doc: value,
       extensions: [
@@ -157,16 +205,13 @@ const CodeMirrorArea = ({ value, fileName, wrap, onChange }: IProps) => {
         highlightSelectionMatches(),
         keymap.of([indentWithTab, ...defaultKeymap, ...historyKeymap, ...searchKeymap]),
         language(ext),
-        dark ? oneDark : syntaxHighlighting(defaultHighlightStyle, { fallback: true }),
+        syntaxHighlighting(highlight),
+        theme,
         wrapComp.current.of(wrap ? EditorView.lineWrapping : []),
         EditorView.updateListener.of((u) => {
           if (u.docChanged) {
             onChangeRef.current(u.state.doc.toString());
           }
-        }),
-        EditorView.theme({
-          "&": { height: "100%", fontSize: "13px", ...(dark ? {} : { backgroundColor: "transparent" }) },
-          ".cm-scroller": { fontFamily: "ui-monospace, SFMono-Regular, Menlo, Consolas, monospace", lineHeight: "1.55" },
         }),
       ],
     });

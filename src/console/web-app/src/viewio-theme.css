@@ -1,0 +1,11 @@
+/* ViewIO: biến màu mặc định cho menu/hộp thoại/chuông/nút Mới (themes.ts ghi đè khi đổi theme hoặc chế độ sáng-tối) */
+:root {
+  --vio-bg: #ffffff;
+  --vio-fg: #1f2933;
+  --vio-muted: #6b7785;
+  --vio-line: rgba(60, 70, 85, 0.3);
+  --vio-hover: rgba(60, 70, 85, 0.1);
+  --vio-accent: #2563eb;
+  --vio-accent-text: #ffffff;
+  --vio-shadow: rgba(0, 0, 0, 0.3);
+}

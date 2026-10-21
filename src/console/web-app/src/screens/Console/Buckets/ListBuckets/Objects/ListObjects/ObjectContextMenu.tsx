@@ -18,6 +18,7 @@ import {
   getUndo,
   isFavorite,
   canDrawioEdit,
+  NEW_TYPES,
   convertOffice,
   isLegacyOffice,
   syncPrefs,
@@ -71,6 +72,7 @@ type Dialog =
   | { t: "office"; key: string }
   | { t: "drawio"; key: string }
   | { t: "newdrawio" }
+  | { t: "newfile"; id: string }
   | { t: "search" }
   | { t: "trash" }
   | { t: "info"; key: string }
@@ -115,6 +117,20 @@ const ObjectContextMenu = ({
     const f = () => bump((n) => n + 1);
     window.addEventListener("viewio-clipboard", f);
     return () => window.removeEventListener("viewio-clipboard", f);
+  }, []);
+
+  // nút "＋ Mới" (NewFileButton) gửi sự kiện này
+  useEffect(() => {
+    const f = (e: Event) => {
+      const id = (e as CustomEvent).detail?.id as string;
+      if (id === "folder") {
+        setDialog({ t: "new", dir: true });
+      } else if (id) {
+        setDialog({ t: "newfile", id });
+      }
+    };
+    window.addEventListener("viewio-new", f);
+    return () => window.removeEventListener("viewio-new", f);
   }, []);
 
   const refresh = useCallback(() => {
@@ -517,6 +533,32 @@ const ObjectContextMenu = ({
     }
   };
 
+  // Tạo file theo loại rồi mở ngay: Office/draw.io mở trình soạn thảo riêng, file văn bản mở viewer ở chế độ sửa
+  const createNewFile = async (name: string, ext: string) => {
+    setDialog(null);
+    const file = ext && !name.toLowerCase().endsWith("." + ext) ? `${name}.${ext}` : name;
+    const e = (file.split(".").pop() || "").toLowerCase();
+    const key = currentPrefix + file;
+    try {
+      await newOfficeDoc(bucketName, key);
+      dispatch(setReloadObjectsList(true));
+      if (["docx", "xlsx", "pptx"].includes(e)) {
+        setDialog({ t: "office", key });
+      } else if (e === "drawio") {
+        setDialog({ t: "drawio", key });
+      } else {
+        try {
+          sessionStorage.setItem("viewio.autoEdit", key);
+        } catch {
+          // bỏ qua
+        }
+        onPreviewKey(bucketName, key);
+      }
+    } catch (err: any) {
+      setProblem([err?.message || String(err)]);
+    }
+  };
+
   const createOffice = async (name: string, ext: string) => {
     setDialog(null);
     const file = name.toLowerCase().endsWith("." + ext) ? name : `${name}.${ext}`;
@@ -622,6 +664,24 @@ const ObjectContextMenu = ({
           onCancel={() => setDialog(null)}
           onOk={(n) => createOffice(n, dialog.ext)}
         />
+      ) : null}
+      {dialog?.t === "newfile" ? (
+        (() => {
+          const t = NEW_TYPES.find((x) => x.id === dialog.id);
+          if (!t) {
+            return null;
+          }
+          return (
+            <NameDialog
+              title={t.group === "custom" ? "Tạo file văn bản" : `Tạo ${t.label}`}
+              initial={t.group === "custom" ? "ghi-chu.txt" : `Chưa đặt tên.${t.ext}`}
+              okLabel="Tạo và mở"
+              isDir={false}
+              onCancel={() => setDialog(null)}
+              onOk={(n) => createNewFile(n, t.ext)}
+            />
+          );
+        })()
       ) : null}
       {dialog?.t === "newdrawio" ? (
         <NameDialog

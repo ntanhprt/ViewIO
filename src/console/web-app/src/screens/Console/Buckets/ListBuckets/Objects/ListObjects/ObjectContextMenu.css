@@ -5,10 +5,10 @@
   min-width: 210px;
   padding: 4px;
   border-radius: 8px;
-  border: 1px solid rgba(128, 128, 128, 0.45);
-  background: Canvas;
-  color: CanvasText;
-  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.35);
+  border: 1px solid var(--vio-line);
+  background: var(--vio-bg);
+  color: var(--vio-fg);
+  box-shadow: 0 8px 28px var(--vio-shadow);
   font-size: 13px;
 }
 .vio-menu-title {
@@ -19,7 +19,7 @@
 .vio-menu-sep {
   height: 1px;
   margin: 4px 6px;
-  background: rgba(128, 128, 128, 0.35);
+  background: var(--vio-hover);
 }
 .vio-menu-item {
   display: flex;
@@ -36,7 +36,7 @@
   cursor: pointer;
 }
 .vio-menu-item:hover:not(:disabled) {
-  background: rgba(37, 99, 235, 0.28);
+  background: color-mix(in srgb, var(--vio-accent) 30%, transparent);
 }
 .vio-menu-item:disabled {
   opacity: 0.4;
@@ -59,10 +59,10 @@
   width: min(440px, calc(100vw - 32px));
   padding: 16px 18px;
   border-radius: 10px;
-  border: 1px solid rgba(128, 128, 128, 0.45);
-  background: Canvas;
-  color: CanvasText;
-  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.45);
+  border: 1px solid var(--vio-line);
+  background: var(--vio-bg);
+  color: var(--vio-fg);
+  box-shadow: 0 12px 40px var(--vio-shadow);
   font-size: 13px;
 }
 .vio-dialog h3 {
@@ -79,7 +79,7 @@
   box-sizing: border-box;
   padding: 7px 9px;
   border-radius: 6px;
-  border: 1px solid rgba(128, 128, 128, 0.6);
+  border: 1px solid var(--vio-line);
   background: transparent;
   color: inherit;
   font: inherit;
@@ -93,7 +93,7 @@
 .vio-btn {
   padding: 6px 14px;
   border-radius: 6px;
-  border: 1px solid rgba(128, 128, 128, 0.6);
+  border: 1px solid var(--vio-line);
   background: transparent;
   color: inherit;
   font: inherit;
@@ -104,9 +104,9 @@
   cursor: default;
 }
 .vio-primary {
-  background: #2563eb;
-  border-color: #2563eb;
-  color: #fff;
+  background: var(--vio-accent);
+  border-color: var(--vio-accent);
+  color: var(--vio-accent-text);
 }
 .vio-warn {
   margin-top: 6px;
@@ -148,14 +148,14 @@
   cursor: pointer;
 }
 .vio-crumb:hover {
-  background: rgba(128, 128, 128, 0.25);
+  background: var(--vio-hover);
 }
 .vio-folders {
   height: 240px;
   overflow: auto;
   padding: 4px;
   border-radius: 6px;
-  border: 1px solid rgba(128, 128, 128, 0.4);
+  border: 1px solid var(--vio-line);
   margin-bottom: 8px;
 }
 .vio-folder {
@@ -171,7 +171,7 @@
   cursor: pointer;
 }
 .vio-folder:hover:not(:disabled) {
-  background: rgba(37, 99, 235, 0.25);
+  background: color-mix(in srgb, var(--vio-accent) 28%, transparent);
 }
 .vio-folder:disabled {
   opacity: 0.4;
@@ -206,7 +206,7 @@
   border-radius: 5px;
 }
 .vio-hit:hover {
-  background: rgba(128, 128, 128, 0.15);
+  background: var(--vio-hover);
 }
 .vio-hit-main {
   flex: 1;
@@ -269,15 +269,15 @@
   z-index: 3200;
   display: flex;
   flex-direction: column;
-  background: Canvas;
-  color: CanvasText;
+  background: var(--vio-bg);
+  color: var(--vio-fg);
 }
 .vio-office-bar {
   display: flex;
   align-items: center;
   gap: 12px;
   padding: 6px 12px;
-  border-bottom: 1px solid rgba(128, 128, 128, 0.4);
+  border-bottom: 1px solid var(--vio-line);
 }
 .vio-office-title {
   overflow: hidden;

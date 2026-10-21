@@ -1,0 +1,82 @@
+.vio-new-wrap {
+  position: relative;
+  display: inline-flex;
+}
+.vio-new-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 40px;
+  padding: 0 16px;
+  border: 1px solid var(--vio-line);
+  border-radius: 20px;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+}
+.vio-new-btn:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--vio-accent) 16%, transparent);
+  border-color: var(--vio-accent);
+}
+.vio-new-btn:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+.vio-new-plus {
+  font-size: 20px;
+  line-height: 1;
+  color: var(--vio-accent);
+}
+.vio-new-menu {
+  position: absolute;
+  top: 46px;
+  left: 0;
+  z-index: 3000;
+  min-width: 270px;
+  padding: 6px 0;
+  border-radius: 10px;
+  border: 1px solid var(--vio-line);
+  background: var(--vio-bg);
+  color: var(--vio-fg);
+  box-shadow: 0 10px 34px var(--vio-shadow);
+  font-size: 14px;
+}
+.vio-new-sep {
+  margin: 4px 14px 2px;
+  padding-top: 6px;
+  border-top: 1px solid rgba(128, 128, 128, 0.3);
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  opacity: 0.6;
+}
+.vio-new-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 7px 16px;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.vio-new-item:hover {
+  background: var(--vio-hover);
+}
+.vio-new-badge {
+  flex: 0 0 24px;
+  height: 24px;
+  border-radius: 5px;
+  color: #fff;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 24px;
+  text-align: center;
+}

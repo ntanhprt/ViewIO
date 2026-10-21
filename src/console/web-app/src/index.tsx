@@ -21,8 +21,10 @@ import { store } from "./store";
 import MainRouter from "./MainRouter";
 import StyleHandler from "./StyleHandler";
 import { installIdentityHeader } from "./identity";
+import { initTheme } from "./themes";
 
 installIdentityHeader();
+initTheme(store.dispatch, !!store.getState().system.darkMode);
 
 const root = ReactDOM.createRoot(
   document.getElementById("root") as HTMLElement,

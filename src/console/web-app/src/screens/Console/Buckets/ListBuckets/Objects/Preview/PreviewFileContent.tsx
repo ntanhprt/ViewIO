@@ -146,6 +146,22 @@ const PreviewFile = ({ bucketName, actualInfo, onResolved, nav }: IPreviewFilePr
     ["docx", "excel", "office"].includes(objectType) &&
     (canOfficeEdit(objectName) || isLegacyOffice(objectName)) &&
     (actualInfo as any)?.is_latest !== false;
+  // file văn bản vừa tạo bằng nút "＋ Mới": mở viewer là vào chế độ sửa luôn
+  useEffect(() => {
+    if (!isMetaDataLoaded || !editable || editing) {
+      return;
+    }
+    try {
+      if (sessionStorage.getItem("viewio.autoEdit") === objectName) {
+        sessionStorage.removeItem("viewio.autoEdit");
+        setEditing(true);
+      }
+    } catch {
+      // bỏ qua
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isMetaDataLoaded, editable, objectName]);
+
   const latestPath = `${window.location.origin}${document.baseURI.replace(window.location.origin, "")}api/v1/buckets/${encodeURIComponent(bucketName)}/objects/download?preview=true&prefix=${encodeURIComponent(objectName)}`;
   const size = actualInfo?.size ? Number(actualInfo.size) : undefined;
 

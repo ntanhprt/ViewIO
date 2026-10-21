@@ -9,14 +9,14 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  border: 1px solid rgba(128, 128, 128, 0.45);
+  border: 1px solid var(--vio-line);
   border-radius: 4px;
   background: transparent;
   color: inherit;
   cursor: pointer;
 }
 .vio-bell:hover {
-  background: rgba(128, 128, 128, 0.18);
+  background: var(--vio-hover);
 }
 .vio-bell-badge {
   position: absolute;
@@ -41,10 +41,10 @@
   width: 420px;
   max-width: calc(100vw - 24px);
   border-radius: 8px;
-  border: 1px solid rgba(128, 128, 128, 0.45);
-  background: Canvas;
-  color: CanvasText;
-  box-shadow: 0 10px 34px rgba(0, 0, 0, 0.4);
+  border: 1px solid var(--vio-line);
+  background: var(--vio-bg);
+  color: var(--vio-fg);
+  box-shadow: 0 10px 34px var(--vio-shadow);
   font-size: 13px;
 }
 .vio-bell-head,
@@ -67,7 +67,7 @@
 .vio-bell-link {
   border: 0;
   background: transparent;
-  color: #2563eb;
+  color: var(--vio-accent);
   cursor: pointer;
   font: inherit;
   font-size: 12px;
@@ -81,7 +81,7 @@
   min-width: 0;
   padding: 3px 8px;
   border-radius: 5px;
-  border: 1px solid rgba(128, 128, 128, 0.55);
+  border: 1px solid var(--vio-line);
   background: transparent;
   color: inherit;
   font: inherit;
@@ -101,7 +101,7 @@
   width: 100%;
   padding: 8px 12px;
   border: 0;
-  border-bottom: 1px solid rgba(128, 128, 128, 0.15);
+  border-bottom: 1px solid var(--vio-hover);
   background: transparent;
   color: inherit;
   font: inherit;
@@ -109,10 +109,10 @@
   cursor: pointer;
 }
 .vio-bell-item:hover {
-  background: rgba(128, 128, 128, 0.15);
+  background: var(--vio-hover);
 }
 .vio-bell-item.vio-new {
-  background: rgba(37, 99, 235, 0.12);
+  background: color-mix(in srgb, var(--vio-accent) 14%, transparent);
 }
 .vio-bell-ic {
   flex: 0 0 22px;

@@ -19,8 +19,7 @@ import { Button, DarkModeIcon, LightModeIcon } from "mds";
 import TooltipWrapper from "../TooltipWrapper/TooltipWrapper";
 import { useSelector } from "react-redux";
 import { AppState, useAppDispatch } from "../../../../store";
-import { setDarkMode } from "../../../../systemSlice";
-import { storeDarkMode } from "../../../../utils/stylesUtils";
+import { applyTheme } from "../../../../themes";
 
 const DarkModeActivator = () => {
   const dispatch = useAppDispatch();
@@ -30,8 +29,8 @@ const DarkModeActivator = () => {
   const darkModeActivator = () => {
     const currentStatus = !!darkMode;
 
-    dispatch(setDarkMode(!currentStatus));
-    storeDarkMode(!currentStatus ? "on" : "off");
+    // nút trăng/mặt trời quay về giao diện gốc sáng/tối của Console
+    applyTheme(dispatch, currentStatus ? "light" : "dark");
   };
 
   return (

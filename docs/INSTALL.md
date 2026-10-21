@@ -563,3 +563,8 @@ Chuông **Thông báo** (góc trên phải khi duyệt bucket): danh sách "ai v
 - **Ghi/xoá bằng S3 API** (mc, boto3, Claude...) lấy qua webhook sự kiện của MinIO, hiện là "S3 API (công cụ) · tài khoản". Cấu hình (compose): `VIEWIO_EVENTS_TOKEN` và `MINIO_NOTIFY_WEBHOOK_*_VIEWIO` (endpoint `http://127.0.0.1:9001/docview/events`, có `QUEUE_DIR` để không mất sự kiện khi khởi động), rồi bật từng bucket: `mc event add <alias>/<bucket> arn:minio:sqs::VIEWIO:webhook --event put,delete`. Chỉ nên bật cho bucket người dùng; bucket ứng dụng ghi dồn dập sẽ sinh rất nhiều dòng.
 - Nhật ký lưu ở `$VIEWIO_PREFS_DIR/activity/<bucket>.jsonl` (giữ ~1000 dòng mới nhất mỗi bucket); API `GET /docview/fs/activity`.
 - Giới hạn: tên người chỉ là nhãn tự khai trên từng trình duyệt, không phải xác thực (người dùng chung tài khoản vẫn có cùng quyền).
+
+## Nút "＋ Mới" và theme (1.11.0)
+
+- **＋ Mới** (cạnh nút chế độ xem, trên danh sách file): xổ menu các loại để tạo ngay trong thư mục đang mở — Thư mục; Word/Excel/PowerPoint (khi có ONLYOFFICE); Sơ đồ draw.io (khi có draw.io); và các file văn bản sửa được: Markdown, TXT, CSV, JSON, HTML, YAML, XML, hoặc "File văn bản khác…" (nhập tên có đuôi: css, js, ts, py, sh, sql, log, ini, toml...). Tạo xong mở luôn trình soạn thảo phù hợp. API: `POST /docview/fs/newdoc` (mẫu khởi tạo trong `newTextTemplates`, `api/docview_office.go`).
+- **Theme**: nút bảng màu cạnh nút sáng/tối chọn giữa Sáng, Tối, Midnight, Graphite, Nord, Solarized tối, Rừng, Sepia; lưu trên trình duyệt (`viewio.theme`). Định nghĩa ở `src/themes.ts` (bộ màu cho Console, cho thành phần ViewIO qua biến `--vio-*`, cho viewer/soạn thảo qua `--dv-*`, `--hl-*`). Trình soạn thảo CodeMirror đọc các biến này nên tự khớp mọi theme. Thanh bên trái của Console giữ màu gốc.

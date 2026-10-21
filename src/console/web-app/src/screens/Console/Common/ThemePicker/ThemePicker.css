@@ -1,0 +1,79 @@
+.vio-theme-wrap {
+  position: relative;
+  display: inline-flex;
+}
+.vio-theme-btn {
+  width: 40px;
+  height: 40px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--vio-line);
+  border-radius: 4px;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+}
+.vio-theme-btn:hover {
+  background: var(--vio-hover);
+}
+.vio-theme-menu {
+  position: absolute;
+  top: 46px;
+  right: 0;
+  z-index: 3000;
+  min-width: 230px;
+  padding: 6px 0;
+  border-radius: 8px;
+  border: 1px solid var(--vio-line);
+  background: var(--vio-bg);
+  color: var(--vio-fg);
+  box-shadow: 0 10px 34px var(--vio-shadow);
+  font-size: 14px;
+}
+.vio-theme-title {
+  padding: 4px 14px 6px;
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  opacity: 0.6;
+}
+.vio-theme-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 6px 14px;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.vio-theme-item:hover {
+  background: var(--vio-hover);
+}
+.vio-theme-active {
+  font-weight: 600;
+}
+.vio-theme-swatch {
+  display: inline-flex;
+  align-items: flex-end;
+  gap: 3px;
+  width: 34px;
+  height: 22px;
+  padding: 3px;
+  box-sizing: border-box;
+  border: 1px solid;
+  border-radius: 5px;
+}
+.vio-theme-swatch i {
+  flex: 1;
+  height: 100%;
+  border-radius: 2px;
+}
+.vio-theme-check {
+  margin-left: auto;
+  color: var(--vio-accent);
+}

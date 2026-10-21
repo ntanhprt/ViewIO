@@ -18,6 +18,7 @@ import React, { Fragment } from "react";
 import { PageHeader } from "mds";
 import ObjectManagerButton from "../ObjectManager/ObjectManagerButton";
 import DarkModeActivator from "../DarkModeActivator/DarkModeActivator";
+import ThemePicker from "../ThemePicker/ThemePicker";
 
 interface IPageHeaderWrapper {
   label: React.ReactNode;
@@ -36,6 +37,7 @@ const PageHeaderWrapper = ({
       actions={
         <Fragment>
           {actions}
+          <ThemePicker />
           <DarkModeActivator />
           <ObjectManagerButton />
         </Fragment>

@@ -141,7 +141,13 @@ const UploadFilesButton = ({
           },
         ]}
         selectedOption={""}
-        onSelect={(nValue) => uploadFolderAction(nValue)}
+        // ViewIO: DropdownSelector của mds nghe phím Enter trên toàn trang kể cả khi menu đóng (Enter bất kỳ đâu → "Upload File"),
+        // nên chỉ nhận lựa chọn khi menu Upload thật sự đang mở
+        onSelect={(nValue) => {
+          if (uploadOptionsOpen) {
+            uploadFolderAction(nValue);
+          }
+        }}
         hideTriggerAction={() => {
           uploadOptionsSetOpen(false);
         }}

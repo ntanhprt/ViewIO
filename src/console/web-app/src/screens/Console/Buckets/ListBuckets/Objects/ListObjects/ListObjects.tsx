@@ -778,6 +778,8 @@ const ListObjects = () => {
   const { getRootProps, getInputProps, isDragActive, isDragAccept } =
     useDropzone({
       noClick: true,
+      // ViewIO: bỏ phím tắt Enter/Space của vùng thả file (mở hộp upload) vì nó bật lên khi gõ trong trình soạn thảo
+      noKeyboard: true,
       onDrop,
     });
 

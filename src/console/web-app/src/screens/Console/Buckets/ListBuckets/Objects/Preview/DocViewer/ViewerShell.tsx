@@ -25,6 +25,7 @@ interface IViewerShellProps {
   badge?: string;
   onClose: () => void;
   onDownload: () => void;
+  zoomKey?: string;
   children: ReactNode;
 }
 
@@ -34,6 +35,7 @@ export const ViewerShell = ({
   badge,
   onClose,
   onDownload,
+  zoomKey = "default",
   children,
 }: IViewerShellProps) => {
   const darkMode = useSelector((state: AppState) => state.system.darkMode);
@@ -47,25 +49,37 @@ export const ViewerShell = ({
   });
   const [reveal, setReveal] = useState(false);
   // tùy chọn hiển thị riêng cho viewer: thu gọn thanh tiêu đề, thu gọn thanh nút, cỡ nội dung
-  const [opt, setOpt] = useState<{ hdr: boolean; tb: boolean; zoom: number }>(
-    () => {
-      try {
-        const o = JSON.parse(localStorage.getItem("docview.viewer") || "{}");
-        return {
-          hdr: !!o.hdr,
-          tb: !!o.tb,
-          zoom: o.zoom >= 0.7 && o.zoom <= 2 ? o.zoom : 1,
-        };
-      } catch (e) {
-        return { hdr: false, tb: false, zoom: 1 };
-      }
+  // hdr/tb dùng chung; zoom lưu riêng theo loại file (zoomKey) để mỗi loại có cỡ riêng
+  const readOpt = (key: string) => {
+    try {
+      const o = JSON.parse(localStorage.getItem("docview.viewer") || "{}");
+      const z = o.zooms ? o.zooms[key] : undefined;
+      return {
+        hdr: !!o.hdr,
+        tb: !!o.tb,
+        zoom: z >= 0.7 && z <= 2 ? z : 1,
+      };
+    } catch (e) {
+      return { hdr: false, tb: false, zoom: 1 };
     }
+  };
+  const [opt, setOpt] = useState<{ hdr: boolean; tb: boolean; zoom: number }>(
+    () => readOpt(zoomKey)
   );
+  useEffect(() => {
+    setOpt(readOpt(zoomKey));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [zoomKey]);
   const patchOpt = (d: Partial<typeof opt>) => {
     const n = { ...opt, ...d };
     setOpt(n);
     try {
-      localStorage.setItem("docview.viewer", JSON.stringify(n));
+      const o = JSON.parse(localStorage.getItem("docview.viewer") || "{}");
+      const zooms = { ...(o.zooms || {}), [zoomKey]: n.zoom };
+      localStorage.setItem(
+        "docview.viewer",
+        JSON.stringify({ hdr: n.hdr, tb: n.tb, zooms })
+      );
     } catch (e) {
       // bỏ qua
     }

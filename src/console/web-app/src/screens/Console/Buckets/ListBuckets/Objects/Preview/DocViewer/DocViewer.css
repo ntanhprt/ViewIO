@@ -608,7 +608,7 @@ a.dv-btn {
 }
 
 /* cỡ nội dung (A−/A+) */
-.dv-root > :not(.dv-header):not(.dv-hot) {
+.dv-root > :not(.dv-header):not(.dv-hot):not(.vio-office) {
   zoom: var(--dv-zoom, 1);
 }
 .dv-grp {

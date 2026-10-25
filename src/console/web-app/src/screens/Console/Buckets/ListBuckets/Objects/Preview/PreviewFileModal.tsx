@@ -119,6 +119,7 @@ const PreviewFileModal = ({
       title={name.split("/").pop() || name}
       subtitle={meta.subtitle}
       badge={meta.badge}
+      zoomKey={(name.split(".").pop() || "").toLowerCase()}
       onClose={onClosePreview}
       onDownload={() =>
         downloadObject(dispatch, bucketName, name, actualInfo)

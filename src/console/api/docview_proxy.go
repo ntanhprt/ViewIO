@@ -47,6 +47,10 @@ func serveDocview(w http.ResponseWriter, r *http.Request) {
 		serveDocviewUpload(w, r)
 	case r.URL.Path == "/docview/events":
 		serveDocviewEvents(w, r)
+	case strings.HasPrefix(r.URL.Path, docviewOfficeDSPrefix+"/"):
+		serveDocviewDS(w, r, true)
+	case strings.HasPrefix(r.URL.Path, docviewDrawioDSPrefix+"/"):
+		serveDocviewDS(w, r, false)
 	case strings.HasPrefix(r.URL.Path, docviewDrawioPrefix):
 		serveDocviewDrawio(w, r)
 	case strings.HasPrefix(r.URL.Path, docviewOfficePrefix):

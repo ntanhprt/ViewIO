@@ -568,3 +568,27 @@ Chuông **Thông báo** (góc trên phải khi duyệt bucket): danh sách "ai v
 
 - **＋ Mới** (cạnh nút chế độ xem, trên danh sách file): xổ menu các loại để tạo ngay trong thư mục đang mở — Thư mục; Word/Excel/PowerPoint (khi có ONLYOFFICE); Sơ đồ draw.io (khi có draw.io); và các file văn bản sửa được: Markdown, TXT, CSV, JSON, HTML, YAML, XML, hoặc "File văn bản khác…" (nhập tên có đuôi: css, js, ts, py, sh, sql, log, ini, toml...). Tạo xong mở luôn trình soạn thảo phù hợp. API: `POST /docview/fs/newdoc` (mẫu khởi tạo trong `newTextTemplates`, `api/docview_office.go`).
 - **Theme**: nút bảng màu cạnh nút sáng/tối chọn giữa Sáng, Tối, Midnight, Graphite, Nord, Solarized tối, Rừng, Sepia; lưu trên trình duyệt (`viewio.theme`). Định nghĩa ở `src/themes.ts` (bộ màu cho Console, cho thành phần ViewIO qua biến `--vio-*`, cho viewer/soạn thảo qua `--dv-*`, `--hl-*`). Trình soạn thảo CodeMirror đọc các biến này nên tự khớp mọi theme. Thanh bên trái của Console giữ màu gốc.
+
+## Editor cùng origin — Word/Excel/PowerPoint + draw.io chạy 100% trên máy này (1.12.0)
+
+Mục tiêu: không gửi dữ liệu ra ngoài, không phụ thuộc tên miền công khai (Cloudflare) hay cổng riêng cho editor.
+
+**Cách hoạt động.** Đặt `VIEWIO_EDITOR_PROXY=on` cho service `minio`. ViewIO chuyển tiếp (reverse proxy, có WebSocket)
+`/docview/office-ds/*` → `VIEWIO_OFFICE_INTERNAL_URL` (ONLYOFFICE) và `/docview/drawio-ds/*` → `VIEWIO_DRAWIO_INTERNAL_URL` (draw.io).
+Trình duyệt chỉ gọi đúng địa chỉ đang dùng để vào Console (tên miền nội bộ, IP, https hay http đều được) —
+địa chỉ lấy từ `location.origin`, không ghi cứng ở đâu cả.
+
+**Khi chuyển sang máy khác (production), cần đủ 4 thứ:**
+1. Service `viewio-office` và `viewio-drawio` chạy **cùng mạng docker** với `minio` (như `docker-compose.yml` mẫu).
+2. `VIEWIO_EDITOR_PROXY: "on"`.
+3. `VIEWIO_OFFICE_INTERNAL_URL: http://viewio-office` và `VIEWIO_DRAWIO_INTERNAL_URL: http://viewio-drawio:8080` — dùng **tên service**, không dùng IP.
+4. `VIEWIO_OFFICE_CALLBACK_URL: http://minio:9001` và `VIEWIO_OFFICE_JWT_SECRET` (cùng giá trị với `JWT_SECRET` của `viewio-office`).
+Không cần `VIEWIO_OFFICE_URL`, `VIEWIO_DRAWIO_URL`, Cloudflare Tunnel hay cổng 21032/21033 mở ra mạng (có thể đặt `OFFICE_PORT`/`DRAWIO_PORT` về `127.0.0.1` bằng cách bind riêng).
+
+**Nếu reverse proxy phía trước (nginx/IT)** đứng trước Console: phải cho WebSocket đi qua (`Upgrade`/`Connection`), không giới hạn dung lượng body dưới 100MB, timeout ≥ 120s.
+
+**Tắt/quay về cách cũ:** bỏ `VIEWIO_EDITOR_PROXY` (hoặc `off`) và dùng `VIEWIO_OFFICE_URL` / `VIEWIO_DRAWIO_URL` như các mục trên.
+
+**Bảo mật:** editor chạy cùng origin với Console nên không còn cách ly origin như khi dùng tên miền riêng — chỉ dùng trong mạng nội bộ tin cậy.
+Document Server vẫn chỉ nhận yêu cầu có JWT do ViewIO ký; cookie/Authorization của Console không được chuyển cho dịch vụ phía sau.
+Mã nguồn: `src/console/api/docview_dsproxy.go`.

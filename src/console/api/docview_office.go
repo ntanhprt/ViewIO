@@ -188,6 +188,9 @@ func officeKind(ext string) (docType string, editable bool) {
 // officeBase: địa chỉ Document Server cho TRÌNH DUYỆT của yêu cầu này. Vào qua tên miền công khai thì dùng URL công khai;
 // vào qua IP/LAN (http) thì dùng cùng host với cổng riêng, tránh lỗi mixed-content.
 func officeBase(r *http.Request, c officeConfig) string {
+	if editorProxyOn() { // VIEWIO_EDITOR_PROXY=on: cùng origin, đi qua /docview/office-ds (xem docview_dsproxy.go)
+		return docviewOfficeDSPrefix
+	}
 	host := r.Header.Get("X-Forwarded-Host")
 	if host == "" {
 		host = r.Host
@@ -315,6 +318,9 @@ func officeEditor(w http.ResponseWriter, r *http.Request, c officeConfig) {
 		origin = u.Scheme + "://" + u.Host
 	}
 	ws := strings.Replace(strings.Replace(origin, "https://", "wss://", 1), "http://", "ws://", 1)
+	if strings.HasPrefix(base, "/") { // cùng origin
+		origin, ws = "'self'", "ws: wss:"
+	}
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	w.Header().Set("Cache-Control", "no-store")
 	w.Header().Set("Content-Security-Policy", fmt.Sprintf(
@@ -330,7 +336,7 @@ if (typeof DocsAPI === "undefined") {
 } else {
   new DocsAPI.DocEditor("ed", %s);
 }
-</script></body></html>`, htmlEscape(path.Base(key)), nonce, base, nonce, htmlEscape(origin), cjs)
+</script></body></html>`, htmlEscape(path.Base(key)), nonce, base, nonce, htmlEscape(base), cjs)
 }
 
 func htmlEscape(s string) string {

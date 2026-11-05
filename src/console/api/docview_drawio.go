@@ -125,9 +125,16 @@ func serveDocviewDrawio(w http.ResponseWriter, r *http.Request) {
 		}
 		base = scheme + "://" + h + ":" + lan
 	}
+	if editorProxyOn() { // cùng origin qua /docview/drawio-ds (xem docview_dsproxy.go); origin để trống = location.origin ở phía trình duyệt
+		base = docviewDrawioDSPrefix
+	}
 	origin := base
 	if u, err := url.Parse(base); err == nil {
 		origin = u.Scheme + "://" + u.Host
+	}
+	cspOrigin := origin
+	if strings.HasPrefix(base, "/") {
+		origin, cspOrigin = "", "'self'"
 	}
 	frameURL := base + "/?" + url.Values{
 		"embed": {"1"}, "proto": {"json"}, "spin": {"1"}, "lang": {"vi"}, "offline": {"1"},
@@ -146,7 +153,7 @@ func serveDocviewDrawio(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Cache-Control", "no-store")
 	w.Header().Set("Content-Security-Policy", fmt.Sprintf(
 		"default-src 'none'; script-src 'nonce-%s'; frame-src %s; connect-src 'self'; style-src 'unsafe-inline'; frame-ancestors 'self'",
-		nonce, origin))
+		nonce, cspOrigin))
 	fmt.Fprintf(w, drawioPage, htmlEscape(path.Base(key)), htmlEscape(frameURL), nonce, cfgs)
 }
 
@@ -185,7 +192,7 @@ const drawioPage = `<!doctype html><html><head><meta charset="utf-8"><title>%s</
 #msg{position:fixed;left:50%%;bottom:14px;transform:translateX(-50%%);background:#222;color:#fff;padding:6px 14px;border-radius:6px;font-size:13px;display:none}</style></head>
 <body><iframe id="f" src="%s"></iframe><div id="msg"></div>
 <script nonce="%s">
-var C = %s;
+var C = %s; if (!C.origin) { C.origin = location.origin; }
 var f = document.getElementById("f"), msgEl = document.getElementById("msg");
 function say(t){ msgEl.textContent = t; msgEl.style.display = "block"; clearTimeout(say.t); say.t = setTimeout(function(){ msgEl.style.display = "none"; }, 3000); }
 function send(o){ f.contentWindow.postMessage(JSON.stringify(o), C.origin); }

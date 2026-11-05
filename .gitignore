@@ -6,3 +6,5 @@ src/console/web-app/build/
 *.log
 .DS_Store
 .upgrade-test/
+fonts/*
+!fonts/README.txt

@@ -52,7 +52,7 @@ services:
   converter:
     build:
       context: ./converter
-    image: ${VIEWIO_CONVERTER_IMAGE:-ntanhprt/viewio-converter:1}
+    image: ${VIEWIO_CONVERTER_IMAGE:-ntanhprt/viewio-converter:2}
     container_name: viewio-converter
     restart: unless-stopped
     user: "1000:1000"
@@ -61,6 +61,8 @@ services:
       CACHE_DAYS: "7"
     volumes:
       - converter-cache:/cache
+      # Font có bản quyền (Arial, Times New Roman, Calibri...) tuỳ chọn: bỏ file .ttf vào ./fonts để xem trước giống Word thật (không đóng vào image)
+      - ./fonts:/usr/share/fonts/truetype/custom:ro
     logging:
       driver: json-file
       options:

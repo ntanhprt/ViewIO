@@ -74,7 +74,7 @@ if [ "$BUILD_ONLY" -eq 1 ]; then
   say "Chỉ chuẩn bị image (không tạo .env, không khởi động, không đụng tới MinIO đang chạy)..."
   export VIEWIO_ROOT_USER=build VIEWIO_ROOT_PASSWORD=build-only-not-used
   get_images
-  say "Xong. Image đã có: ntanhprt/viewio:2025-04-22 và ntanhprt/viewio-converter:1"
+  say "Xong. Image đã có: ntanhprt/viewio:2025-04-22 và ntanhprt/viewio-converter:2"
   say "Bước tiếp theo: docs/INSTALL.md mục 3b (nâng cấp MinIO đã cài tại chỗ)."
   exit 0
 fi

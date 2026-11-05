@@ -88,6 +88,45 @@ export const ViewerShell = ({
     patchOpt({ zoom: Math.round(Math.min(2, Math.max(0.7, opt.zoom + d)) * 10) / 10 });
   const hideTimer = useRef<number>();
 
+  // Ctrl + lăn chuột = phóng to/thu nhỏ nội dung (thay vì zoom cả trình duyệt); Shift + lăn = cuộn ngang khi trang rộng hơn khung.
+  // Dùng listener gốc (không passive) vì React không cho preventDefault trên wheel.
+  const zoomRef = useRef(opt.zoom);
+  zoomRef.current = opt.zoom;
+  const zoomFn = useRef(patchOpt);
+  zoomFn.current = patchOpt;
+  useEffect(() => {
+    const el = rootRef.current;
+    if (!el) {
+      return;
+    }
+    const onWheel = (e: WheelEvent) => {
+      if (e.ctrlKey || e.metaKey) {
+        e.preventDefault();
+        const d = e.deltaY < 0 ? 0.1 : -0.1;
+        const z = Math.round(Math.min(2, Math.max(0.7, zoomRef.current + d)) * 10) / 10;
+        if (z !== zoomRef.current) {
+          zoomFn.current({ zoom: z });
+        }
+      } else if (e.shiftKey) {
+        // tìm phần tử cuộn được theo chiều ngang gần nhất dưới con trỏ
+        let n = e.target as HTMLElement | null;
+        while (n && n !== el.parentElement) {
+          if (n.scrollWidth > n.clientWidth + 1) {
+            const ox = getComputedStyle(n).overflowX;
+            if (ox === "auto" || ox === "scroll") {
+              e.preventDefault();
+              n.scrollLeft += e.deltaY || e.deltaX;
+              return;
+            }
+          }
+          n = n.parentElement;
+        }
+      }
+    };
+    el.addEventListener("wheel", onWheel, { passive: false });
+    return () => el.removeEventListener("wheel", onWheel);
+  }, []);
+
   const setMode = (on: boolean) => {
     setImmersive(on);
     setReveal(false);

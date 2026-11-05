@@ -118,7 +118,7 @@ func serveDocviewDrawio(w http.ResponseWriter, r *http.Request) {
 	if host == "" {
 		host = r.Host
 	}
-	if h := officeHostOnly(host); isLANHost(h) {
+	if h := officeHostOnly(host); isLANHost(h) && !httpsPage(r) {
 		scheme := "http"
 		if r.TLS != nil {
 			scheme = "https"

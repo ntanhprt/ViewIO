@@ -196,7 +196,8 @@ func officeBase(r *http.Request, c officeConfig) string {
 	if err != nil {
 		h = host
 	}
-	if net.ParseIP(h) != nil || !strings.Contains(h, ".") || strings.HasSuffix(h, ".local") || h == "localhost" {
+	// trang đang chạy HTTPS (qua proxy/tên miền nội bộ nhưng proxy gửi Host là IP) thì không thể gọi http://IP:cổng (mixed content) -> dùng URL công khai
+	if (net.ParseIP(h) != nil || !strings.Contains(h, ".") || strings.HasSuffix(h, ".local") || h == "localhost") && !httpsPage(r) {
 		scheme := "http"
 		if r.TLS != nil {
 			scheme = "https"
@@ -705,4 +706,10 @@ var newTextTemplates = map[string]string{
 	"toml":     "",
 	"conf":     "",
 	"env":      "",
+}
+
+// httpsPage: trình duyệt đang xem Console qua HTTPS (trực tiếp, hoặc sau proxy báo X-Forwarded-Proto/Referer là https).
+func httpsPage(r *http.Request) bool {
+	return r.TLS != nil || strings.EqualFold(r.Header.Get("X-Forwarded-Proto"), "https") ||
+		strings.HasPrefix(r.Referer(), "https://")
 }

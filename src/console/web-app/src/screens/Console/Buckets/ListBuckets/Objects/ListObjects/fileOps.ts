@@ -455,3 +455,44 @@ export const NEW_TYPES: NewType[] = [
 
 export const requestNew = (id: string) =>
   window.dispatchEvent(new CustomEvent("viewio-new", { detail: { id } }));
+
+// ---- Chia sẻ để xem: link công khai mở trang xem tài liệu, không tự tải (xem api/docview_share.go) ----
+export interface ShareRec {
+  token: string;
+  by: string;
+  created: number;
+  expires: number;
+  download: boolean;
+  views: number;
+  lastView: number;
+}
+
+// Địa chỉ link = địa chỉ đang dùng để vào Console (không ghi cứng domain)
+export const shareUrl = (token: string) =>
+  `${window.location.origin}${base()}docview/s/${token}`;
+
+const shareReq = async (path: string, init?: RequestInit) => {
+  const res = await fetch(url(path), { credentials: "same-origin", ...init });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    throw new Error(data.detailedMessage || `Lỗi ${res.status}`);
+  }
+  return data;
+};
+
+export const shareCreate = (bucket: string, key: string, hours: number, download: boolean): Promise<ShareRec> =>
+  shareReq("share", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ bucket, key, hours, download }),
+  });
+
+export const shareList = async (bucket: string, key: string): Promise<ShareRec[]> =>
+  (await shareReq(`shares?${new URLSearchParams({ bucket, key }).toString()}`)).shares || [];
+
+export const shareRevoke = (token: string) =>
+  shareReq("unshare", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ token }),
+  });

@@ -111,6 +111,12 @@ func serveDocviewFs(w http.ResponseWriter, r *http.Request) {
 		fsInfo(w, r, client)
 	case action == "save" && r.Method == http.MethodPut:
 		fsSave(w, r, client)
+	case action == "share" && r.Method == http.MethodPost:
+		fsShareCreate(w, r, client)
+	case action == "shares" && r.Method == http.MethodGet:
+		fsShareList(w, r, client)
+	case action == "unshare" && r.Method == http.MethodPost:
+		fsShareRevoke(w, r, client)
 	case action == "zip" && r.Method == http.MethodGet:
 		fsZip(w, r, client)
 	default:

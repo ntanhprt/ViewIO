@@ -32,6 +32,7 @@ const VERB: Record<string, string> = {
   mkdir: "đã tạo thư mục",
   create: "đã tạo",
   purge: "đã xoá vĩnh viễn",
+  share: "đã chia sẻ link xem",
 };
 
 const ICON: Record<string, string> = {
@@ -46,6 +47,7 @@ const ICON: Record<string, string> = {
   mkdir: "📁",
   create: "＋",
   purge: "✕",
+  share: "🔗",
 };
 
 const ago = (t: number) => {

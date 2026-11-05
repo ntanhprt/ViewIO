@@ -592,3 +592,20 @@ Không cần `VIEWIO_OFFICE_URL`, `VIEWIO_DRAWIO_URL`, Cloudflare Tunnel hay c�
 **Bảo mật:** editor chạy cùng origin với Console nên không còn cách ly origin như khi dùng tên miền riêng — chỉ dùng trong mạng nội bộ tin cậy.
 Document Server vẫn chỉ nhận yêu cầu có JWT do ViewIO ký; cookie/Authorization của Console không được chuyển cho dịch vụ phía sau.
 Mã nguồn: `src/console/api/docview_dsproxy.go`.
+
+## Chia sẻ để xem (1.13.0)
+
+Chuột phải file → **Chia sẻ để xem…** → chọn thời hạn (1 giờ … không hết hạn), có cho tải hay không → **Tạo link**.
+Link dạng `<địa chỉ Console>/docview/s/<mã ngẫu nhiên>` mở ra trang xem tài liệu cho người **không cần đăng nhập**:
+ảnh, PDF, video/âm thanh, văn bản/code/CSV/Markdown (hiện dạng text), Word/Excel/PowerPoint (đổi sang PDF rồi xem). Khác với link
+chia sẻ gốc của MinIO (chỉ là link tải), trang này không tự tải về. Hộp thoại liệt kê các link của file, sao chép và **Thu hồi** được.
+
+**Cấu hình / chuyển máy:**
+- Dữ liệu link: `<VIEWIO_PREFS_DIR hoặc $HOME/viewio-prefs>/shares.json` — phải nằm trên volume/bind mount (compose mẫu: `/mc`).
+- Cần `MINIO_ROOT_USER` và `MINIO_ROOT_PASSWORD` trong môi trường container `minio` (link công khai đọc file bằng tài khoản này,
+  chỉ đúng file đã chia sẻ; người tạo link phải có quyền đọc file lúc tạo). Thiếu hai biến này thì nút báo "chưa bật".
+- Word/Excel/PowerPoint cần service `converter` như viewer (`DOCVIEW_CONVERTER_URL`).
+- Địa chỉ link lấy từ địa chỉ trình duyệt đang dùng; người nhận phải vào được cùng địa chỉ đó (ví dụ trong mạng công ty/VPN).
+  Không gọi dịch vụ bên ngoài. Reverse proxy phía trước cần cho `/docview/s/` đi qua không đòi đăng nhập.
+- Bảo mật: mã link 192 bit, file phục vụ kèm CSP/sandbox + nosniff (HTML/SVG không chạy được script); "không cho tải" chỉ ẩn nút/chặn
+  `/download`. Mã nguồn: `src/console/api/docview_share.go`.

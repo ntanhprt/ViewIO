@@ -37,6 +37,7 @@ import {
   FavDialog,
   FolderPicker,
   InfoDialog,
+  ShareDialog,
   Mode,
   NameDialog,
   SearchDialog,
@@ -76,6 +77,7 @@ type Dialog =
   | { t: "search" }
   | { t: "trash" }
   | { t: "info"; key: string }
+  | { t: "share"; key: string }
   | { t: "fav" };
 
 interface Entry {
@@ -488,6 +490,9 @@ const ObjectContextMenu = ({
           label: isFavorite(bucketName, single) ? "Bỏ khỏi yêu thích" : "Thêm vào yêu thích",
           act: () => notify(toggleFavorite(bucketName, single) ? "Đã thêm vào yêu thích" : "Đã bỏ khỏi yêu thích"),
         });
+        if (!singleIsDir && !inTrash) {
+          entries.push({ label: "Chia sẻ để xem…", act: () => setDialog({ t: "share", key: single }) });
+        }
         entries.push({ label: "Thuộc tính", act: () => setDialog({ t: "info", key: single }) });
       }
       entries.push({
@@ -729,6 +734,9 @@ const ObjectContextMenu = ({
       ) : null}
       {dialog?.t === "info" ? (
         <InfoDialog bucket={bucketName} keyName={dialog.key} onClose={() => setDialog(null)} />
+      ) : null}
+      {dialog?.t === "share" ? (
+        <ShareDialog bucket={bucketName} keyName={dialog.key} onClose={() => setDialog(null)} />
       ) : null}
       {dialog?.t === "fav" ? <FavDialog onOpen={openRef} onClose={() => setDialog(null)} /> : null}
       {busy ? (

@@ -16,6 +16,11 @@ import {
   mkdir,
   purge,
   search,
+  ShareRec,
+  shareCreate,
+  shareList,
+  shareRevoke,
+  shareUrl,
   toggleFavorite,
   transfer,
 } from "./fileOps";
@@ -627,6 +632,123 @@ export const FavDialog = ({
       </div>
       <div className="vio-actions">
         <button type="button" className="vio-btn" onClick={onClose}>
+          Đóng
+        </button>
+      </div>
+    </Overlay>
+  );
+};
+
+const HOURS: [number, string][] = [
+  [1, "1 giờ"],
+  [24, "1 ngày"],
+  [24 * 7, "7 ngày"],
+  [24 * 30, "30 ngày"],
+  [0, "Không hết hạn"],
+];
+
+export const ShareDialog = ({ bucket, keyName, onClose }: { bucket: string; keyName: string; onClose: () => void }) => {
+  const [hours, setHours] = useState(24 * 7);
+  const [dl, setDl] = useState(true);
+  const [list, setList] = useState<ShareRec[]>([]);
+  const [err, setErr] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [copied, setCopied] = useState("");
+  const reload = () =>
+    shareList(bucket, keyName)
+      .then(setList)
+      .catch((e) => setErr(e.message));
+  useEffect(() => {
+    reload();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [bucket, keyName]);
+  const copy = async (token: string) => {
+    const u = shareUrl(token);
+    try {
+      await navigator.clipboard.writeText(u);
+    } catch (e) {
+      window.prompt("Sao chép link:", u);
+    }
+    setCopied(token);
+  };
+  const create = async () => {
+    setBusy(true);
+    setErr("");
+    try {
+      const r = await shareCreate(bucket, keyName, hours, dl);
+      await reload();
+      await copy(r.token);
+    } catch (e) {
+      setErr((e as Error).message);
+    }
+    setBusy(false);
+  };
+  const fmt = (t: number) => new Date(t * 1000).toLocaleString();
+  return (
+    <Overlay onClose={onClose} wide>
+      <h3>Chia sẻ để xem</h3>
+      <div className="vio-muted">{baseName(keyName)}</div>
+      <div className="vio-row" style={{ gap: 12, alignItems: "center", margin: "10px 0" }}>
+        <label>
+          Hết hạn sau{" "}
+          <select className="vio-input" style={{ width: "auto" }} value={hours} onChange={(e) => setHours(Number(e.target.value))}>
+            {HOURS.map(([h, l]) => (
+              <option key={h} value={h}>
+                {l}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label>
+          <input type="checkbox" checked={dl} onChange={(e) => setDl(e.target.checked)} /> Cho phép tải xuống
+        </label>
+        <button type="button" className="vio-btn vio-primary" disabled={busy} onClick={create}>
+          Tạo link
+        </button>
+      </div>
+      <div className="vio-muted" style={{ fontSize: 12 }}>
+        Ai có link đều xem được file này, không cần đăng nhập (người nhận phải vào được cùng mạng với máy chủ). Tắt “cho phép tải” chỉ ẩn nút tải xuống, người xem vẫn thấy nội dung.
+      </div>
+      {err ? <div className="vio-warn">{err}</div> : null}
+      {list.length === 0 ? <div className="vio-muted" style={{ marginTop: 10 }}>Chưa có link nào cho file này.</div> : null}
+      {list.map((s) => {
+        const expired = s.expires > 0 && s.expires * 1000 < Date.now();
+        return (
+          <div key={s.token} style={{ marginTop: 10, opacity: expired ? 0.5 : 1 }}>
+            <input
+              className="vio-input"
+              readOnly
+              value={shareUrl(s.token)}
+              onFocus={(e) => e.target.select()}
+              style={{ width: "100%", boxSizing: "border-box" }}
+            />
+            <div style={{ display: "flex", gap: 8, alignItems: "center", marginTop: 6, flexWrap: "wrap" }}>
+              <button type="button" className="vio-btn" onClick={() => copy(s.token)} disabled={expired}>
+                {copied === s.token ? "Đã chép" : "Sao chép"}
+              </button>
+              <button
+                type="button"
+                className="vio-btn"
+                onClick={async () => {
+                  try {
+                    await shareRevoke(s.token);
+                    await reload();
+                  } catch (e) {
+                    setErr((e as Error).message);
+                  }
+                }}
+              >
+                Thu hồi
+              </button>
+              <span className="vio-muted" style={{ fontSize: 12 }}>
+                {s.expires ? (expired ? "đã hết hạn" : `hết hạn ${fmt(s.expires)}`) : "không hết hạn"} · {s.views} lượt xem · {s.download ? "cho tải" : "chỉ xem"}
+              </span>
+            </div>
+          </div>
+        );
+      })}
+      <div className="vio-actions">
+        <button type="button" className="vio-btn vio-primary" onClick={onClose}>
           Đóng
         </button>
       </div>

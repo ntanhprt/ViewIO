@@ -19,7 +19,8 @@ import { useSyncExternalStore } from "react";
 // ViewIO: trạng thái chế độ xem danh sách file (danh sách / thumbnail), dùng chung giữa
 // thanh công cụ (BrowserBreadcrumbs) và bảng file (ListObjectsTable). Nhớ trong localStorage.
 
-export type ViewModeType = "list" | "thumb";
+// list = chi tiết (bảng), compact = danh sách gọn (icon + tên, chảy theo cột như Windows), thumb = thumbnail
+export type ViewModeType = "list" | "compact" | "thumb";
 export type ThumbSize = "s" | "m" | "l";
 export type SortField = "name" | "last_modified" | "size";
 
@@ -47,7 +48,8 @@ const read = (): ViewState => {
     if (raw) {
       const p = JSON.parse(raw);
       return {
-        mode: p.mode === "thumb" ? "thumb" : "list",
+        mode:
+          p.mode === "thumb" || p.mode === "compact" ? p.mode : "list",
         size: ["s", "m", "l"].includes(p.size) ? p.size : "m",
         sortBy: ["name", "last_modified", "size"].includes(p.sortBy)
           ? p.sortBy

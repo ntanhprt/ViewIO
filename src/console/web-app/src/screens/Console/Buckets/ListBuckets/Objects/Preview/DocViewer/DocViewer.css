@@ -777,3 +777,30 @@ a.dv-btn {
 .dv-navnext {
   right: 10px;
 }
+
+.dv-extract {
+  position: absolute;
+  z-index: 8;
+  top: 48px;
+  right: 16px;
+  width: 400px;
+  max-width: calc(100% - 32px);
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  border-radius: 8px;
+  border: 1px solid rgba(128, 128, 128, 0.45);
+  background: var(--dv-bg, #fff);
+  color: inherit;
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.3);
+  font-size: 13px;
+}
+@media (prefers-color-scheme: dark) {
+  .dv-extract { background: #1f2937; }
+}
+.dv-extract-head { display: flex; justify-content: space-between; align-items: center; }
+.dv-extract-row { display: flex; flex-direction: column; gap: 4px; }
+.dv-extract-hint { font-size: 12px; opacity: 0.85; word-break: break-word; }
+.dv-extract-help { cursor: help; color: rgb(37, 99, 235); }
+.dv-extract-actions { display: flex; justify-content: flex-end; gap: 8px; }

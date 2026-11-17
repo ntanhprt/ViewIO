@@ -14,7 +14,7 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-import React, { useLayoutEffect, useRef, useState } from "react";
+import React, { useLayoutEffect, useMemo, useRef, useState } from "react";
 import { listModeColumns, rewindModeColumns } from "./ListObjectsHelpers";
 import { useSelector } from "react-redux";
 import { AppState, useAppDispatch } from "../../../../../../store";
@@ -42,6 +42,9 @@ import { hasPermission } from "../../../../../../common/SecureComponent";
 import { downloadObject } from "../../../../ObjectBrowser/utils";
 import { DataTable, ItemActions } from "mds";
 import ThumbnailGrid from "./ThumbnailGrid";
+import CompactList from "./CompactList";
+import ColumnResizeHandles from "./ColumnResizeHandles";
+import { niceBytes } from "../../../../../../common/utils";
 import {
   setViewState,
   SortField,
@@ -82,6 +85,26 @@ const ListObjectsTable = () => {
       window.removeEventListener("resize", measure);
     };
   }, [view.focus, view.mode]);
+
+  // Độ rộng cột do người dùng kéo (nhớ trong localStorage); cột chưa kéo thì giữ mặc định của bảng
+  const [colW, setColW] = useState<Record<string, number>>(() => {
+    try {
+      return JSON.parse(window.localStorage.getItem("docview.colw") || "{}");
+    } catch {
+      return {};
+    }
+  });
+  const setColWidth = (key: string, w: number) => {
+    setColW((prev) => {
+      const next = { ...prev, [key]: w };
+      try {
+        window.localStorage.setItem("docview.colw", JSON.stringify(next));
+      } catch {
+        /* bỏ qua */
+      }
+      return next;
+    });
+  };
 
   const bucketName = params.bucketName || "";
 
@@ -186,15 +209,49 @@ const ListObjectsTable = () => {
     );
   };
 
+  // Chọn đúng 1 mục (Ctrl = thêm/bớt) — dùng cho click đơn vào thư mục (giống Explorer của Windows)
+  const selectOnly = (item: BucketObjectItem, additive: boolean) => {
+    dispatch(setSelectedObjectView(null));
+    if (additive) {
+      dispatch(
+        setSelectedObjects(
+          selectedObjects.includes(item.name)
+            ? selectedObjects.filter((n) => n !== item.name)
+            : [...selectedObjects, item.name],
+        ),
+      );
+    } else {
+      dispatch(setSelectedObjects([item.name]));
+    }
+  };
+
   const rememberFirstClick = (e: React.MouseEvent<HTMLDivElement>) => {
     if (e.detail <= 1) {
       firstClickObj.current = rowObject(e.target as HTMLElement);
+    }
+    // Mọi dòng (file/thư mục): chặn click mặc định của bảng (điều hướng + mở panel làm danh sách nháy, mất chọn);
+    // click đơn = chọn, double-click = mở/xem. Chi tiết file xem ở menu chuột phải → Thuộc tính
+    const obj = rowObject(e.target as HTMLElement);
+    if (
+      !anonymousMode &&
+      !rewindEnabled &&
+      obj &&
+      !(e.target as HTMLElement).closest("input, button, [role='columnheader']")
+    ) {
+      e.stopPropagation();
+      if (e.detail <= 1) {
+        selectOnly(obj, e.ctrlKey || e.metaKey);
+      }
     }
   };
 
   const previewOnDoubleClick = () => {
     const obj = firstClickObj.current;
     firstClickObj.current = undefined;
+    if (obj && obj.name.endsWith("/") && !anonymousMode && !rewindEnabled) {
+      openPath(obj as unknown as BucketObject);
+      return;
+    }
     if (anonymousMode || !obj || obj.name.endsWith("/") || obj.delete_flag) {
       return;
     }
@@ -382,6 +439,37 @@ const ListObjectsTable = () => {
       </ObjectContextMenu>
     );
 
+  const tableColumns = useMemo(
+    () =>
+      (rewindEnabled ? rewindModeColumns : listModeColumns).map((c: any) => ({
+        ...c,
+        width: colW[c.elementKey] ?? c.width,
+      })),
+    [rewindEnabled, colW],
+  );
+
+  // Tự khớp cột theo nội dung dài nhất (đo bằng canvas)
+  const autoFit = (key: string): number => {
+    const ctx = document.createElement("canvas").getContext("2d");
+    if (!ctx) {
+      return 200;
+    }
+    ctx.font = "14px system-ui, sans-serif";
+    let max = 0;
+    payload.forEach((o) => {
+      let txt = "";
+      if (key === "name") {
+        txt = o.name.split("/").filter(Boolean).pop() || o.name;
+      } else if (key === "size") {
+        txt = o.size ? niceBytes(String(o.size)) : "";
+      } else {
+        txt = "00/00/0000 00:00:00";
+      }
+      max = Math.max(max, ctx.measureText(txt).width);
+    });
+    return max + (key === "name" ? 70 : 36);
+  };
+
   if (view.mode === "thumb" && !rewindEnabled) {
     return withMenu(
       <ThumbnailGrid
@@ -396,6 +484,26 @@ const ListObjectsTable = () => {
         onToggle={toggleItem}
         onOpen={(item) => openPath(item as unknown as BucketObject)}
         onPreview={previewItem}
+        onSelectOnly={selectOnly}
+      />,
+    );
+  }
+
+  if (view.mode === "compact" && !rewindEnabled) {
+    return withMenu(
+      <CompactList
+        items={payload}
+        selected={selectedObjects}
+        activeName={selectedInternalPaths}
+        remeasureKey={view.focus}
+        loading={requestInProgress}
+        emptyMessage={errorMessage}
+        onSelectOnly={selectOnly}
+        onActivate={(item) =>
+          item.name.endsWith("/")
+            ? openPath(item as unknown as BucketObject)
+            : previewItem(item)
+        }
       />,
     );
   }
@@ -403,12 +511,23 @@ const ListObjectsTable = () => {
   return withMenu(
     <div
       ref={tableWrapRef}
+      style={{ position: "relative" }}
       onClickCapture={rememberFirstClick}
       onDoubleClick={previewOnDoubleClick}
     >
+      <ColumnResizeHandles
+        containerRef={tableWrapRef}
+        cols={tableColumns.map((c: any) => ({
+          key: c.elementKey,
+          label: c.label,
+        }))}
+        onResize={setColWidth}
+        onAutoFit={autoFit}
+        deps={[colW, payload.length, rewindEnabled, detailsOpen]}
+      />
       <DataTable
         itemActions={tableActions}
-        columns={rewindEnabled ? rewindModeColumns : listModeColumns}
+        columns={tableColumns}
         isLoading={requestInProgress}
         entityName="Objects"
         idField="name"

@@ -281,11 +281,8 @@ export const FolderTreeLayout = ({
       );
     }
     if (!st.items?.length) {
-      return (
-        <div className="ft-note" style={{ paddingLeft: 40 + depth * 14 }}>
-          (không có thư mục con)
-        </div>
-      );
+      // không có thư mục con: chỉ hiện thư mục mẹ, không thêm ghi chú
+      return null;
     }
     return (
       <React.Fragment>

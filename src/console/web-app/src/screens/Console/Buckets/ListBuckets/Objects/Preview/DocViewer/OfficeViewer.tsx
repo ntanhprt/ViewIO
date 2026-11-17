@@ -40,10 +40,12 @@ interface IOfficeViewerProps {
   path: string;
   fileName: string;
   size?: number;
+  bucket?: string;
+  objectKey?: string;
   onDownload: () => void;
 }
 
-const OfficeViewer = ({ path, fileName, size, onDownload }: IOfficeViewerProps) => {
+const OfficeViewer = ({ path, fileName, size, bucket, objectKey, onDownload }: IOfficeViewerProps) => {
   const tooBig = !!size && size > MAX_BYTES;
   const { blob, loading, error } = useFileData(tooBig ? "" : path);
   const [pdf, setPdf] = useState<Blob | null>(null);
@@ -97,7 +99,7 @@ const OfficeViewer = ({ path, fileName, size, onDownload }: IOfficeViewerProps) 
     );
   }
   if (pdf) {
-    return <PdfViewer file={pdf} onDownload={onDownload} />;
+    return <PdfViewer file={pdf} onDownload={onDownload} bucket={bucket} objectKey={objectKey} />;
   }
   return (
     <Loading

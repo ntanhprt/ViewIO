@@ -24,12 +24,15 @@ import React, {
 import { Document, Page, pdfjs } from "react-pdf";
 import "react-pdf/dist/Page/TextLayer.css";
 import { Loading, Problem } from "./ViewerShell";
+import PdfExtract from "./PdfExtract";
 
 pdfjs.GlobalWorkerOptions.workerSrc = "./scripts/pdf.worker.min.mjs";
 
 interface IPdfViewerProps {
   file: string | Blob;
   onDownload: () => void;
+  bucket?: string;
+  objectKey?: string;
 }
 
 const escapeHtml = (s: string) =>
@@ -101,7 +104,8 @@ const LazyPage = ({
   );
 };
 
-const PdfViewer = ({ file, onDownload }: IPdfViewerProps) => {
+const PdfViewer = ({ file, onDownload, bucket, objectKey }: IPdfViewerProps) => {
+  const [extracting, setExtracting] = useState(false);
   const [numPages, setNumPages] = useState(0);
   const [error, setError] = useState("");
   const [zoom, setZoom] = useState(1);
@@ -272,7 +276,7 @@ const PdfViewer = ({ file, onDownload }: IPdfViewerProps) => {
               ))}
             </div>
           ) : null}
-          <div style={{ display: "flex", flexDirection: "column", flex: 1, minWidth: 0 }}>
+          <div style={{ display: "flex", flexDirection: "column", flex: 1, minWidth: 0, position: "relative" }}>
             <div className="dv-toolbar">
               <button
                 className={`dv-btn ${thumbs ? "dv-active" : ""}`}
@@ -326,6 +330,14 @@ const PdfViewer = ({ file, onDownload }: IPdfViewerProps) => {
                 Vừa khung
               </button>
               <span className="dv-sep" />
+              <button
+                className={`dv-btn ${extracting ? "dv-active" : ""}`}
+                onClick={() => setExtracting(!extracting)}
+                title="Copy/trích các trang ra file PDF mới (lưu về máy hoặc lên S3)"
+              >
+                ⧉ Copy trang
+              </button>
+              <span className="dv-sep" />
               <input
                 className="dv-input"
                 placeholder="Tìm trong tài liệu..."
@@ -359,6 +371,16 @@ const PdfViewer = ({ file, onDownload }: IPdfViewerProps) => {
                     : ""}
               </span>
             </div>
+            {extracting ? (
+              <PdfExtract
+                file={docFile}
+                numPages={numPages}
+                current={current}
+                bucket={bucket}
+                objectKey={objectKey}
+                onClose={() => setExtracting(false)}
+              />
+            ) : null}
             <div className="dv-scroll" ref={scrollRef} onScroll={onScroll}>
               <div className="dv-pages">
                 {indexes.map((i) => (

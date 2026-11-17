@@ -25,6 +25,18 @@ const ListIcon = () => (
     <rect x="1" y="11" width="14" height="2" rx="1" />
   </svg>
 );
+const CompactListIcon = () => (
+  <svg viewBox="0 0 16 16" width="16" height="16" fill="currentColor">
+    <rect x="1" y="2" width="3" height="3" rx="0.6" />
+    <rect x="5.5" y="3" width="3.5" height="1.2" rx="0.6" />
+    <rect x="1" y="6.5" width="3" height="3" rx="0.6" />
+    <rect x="5.5" y="7.5" width="3.5" height="1.2" rx="0.6" />
+    <rect x="1" y="11" width="3" height="3" rx="0.6" />
+    <rect x="5.5" y="12" width="3.5" height="1.2" rx="0.6" />
+    <rect x="10.5" y="2" width="3" height="3" rx="0.6" />
+    <rect x="10.5" y="6.5" width="3" height="3" rx="0.6" />
+  </svg>
+);
 const GridIcon = () => (
   <svg viewBox="0 0 16 16" width="16" height="16" fill="currentColor">
     <rect x="1" y="1" width="6" height="6" rx="1" />
@@ -63,10 +75,17 @@ const ViewModeToolbar = () => {
       <div className="vm-group">
         <button
           className={`vm-btn ${v.mode === "list" ? "vm-on" : ""}`}
-          title="Xem dạng danh sách"
+          title="Xem dạng chi tiết (bảng: tên, dung lượng, ngày sửa)"
           onClick={() => setViewState({ mode: "list" })}
         >
           <ListIcon />
+        </button>
+        <button
+          className={`vm-btn ${v.mode === "compact" ? "vm-on" : ""}`}
+          title="Xem dạng danh sách gọn (icon + tên, xếp theo cột)"
+          onClick={() => setViewState({ mode: "compact" })}
+        >
+          <CompactListIcon />
         </button>
         <button
           className={`vm-btn ${v.mode === "thumb" ? "vm-on" : ""}`}
@@ -96,20 +115,22 @@ const ViewModeToolbar = () => {
           <FullIcon />
         </button>
       </div>
-      {v.mode === "thumb" ? (
+      {v.mode !== "list" ? (
         <React.Fragment>
-          <div className="vm-group">
-            {(["s", "m", "l"] as ThumbSize[]).map((s) => (
-              <button
-                key={s}
-                className={`vm-btn ${v.size === s ? "vm-on" : ""}`}
-                title={`Thẻ ${SIZE_LABEL[s].toLowerCase()}`}
-                onClick={() => setViewState({ size: s })}
-              >
-                {s.toUpperCase()}
-              </button>
-            ))}
-          </div>
+          {v.mode === "thumb" ? (
+            <div className="vm-group">
+              {(["s", "m", "l"] as ThumbSize[]).map((s) => (
+                <button
+                  key={s}
+                  className={`vm-btn ${v.size === s ? "vm-on" : ""}`}
+                  title={`Thẻ ${SIZE_LABEL[s].toLowerCase()}`}
+                  onClick={() => setViewState({ size: s })}
+                >
+                  {s.toUpperCase()}
+                </button>
+              ))}
+            </div>
+          ) : null}
           <div className="vm-group">
             <select
               className="vm-select"

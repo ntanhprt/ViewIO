@@ -240,6 +240,47 @@ const ObjectContextMenu = ({
     [bucketName],
   );
 
+  // Copy danh sách mục đã chọn dạng văn bản để dán cho Claude Code / LLM
+  const doCopyList = useCallback(
+    async (items: string[]) => {
+      if (!items.length) {
+        return;
+      }
+      const files = items.filter((i) => !i.endsWith("/"));
+      const dirs = items.filter((i) => i.endsWith("/"));
+      const lines = [
+        `Bucket: ${bucketName}`,
+        `Đã chọn ${items.length} mục (${files.length} file${dirs.length ? `, ${dirs.length} thư mục` : ""}). Đường dẫn tính từ gốc bucket:`,
+        ...items.map((i) => `- s3://${bucketName}/${i}`),
+      ];
+      const text = lines.join("\n");
+      let ok = false;
+      try {
+        await navigator.clipboard.writeText(text);
+        ok = true;
+      } catch (e) {
+        const ta = document.createElement("textarea");
+        ta.value = text;
+        ta.style.position = "fixed";
+        ta.style.opacity = "0";
+        document.body.appendChild(ta);
+        ta.select();
+        try {
+          ok = document.execCommand("copy");
+        } catch (e2) {
+          ok = false;
+        }
+        ta.remove();
+      }
+      dispatch(
+        setSnackBarMessage(
+          ok ? `Đã copy danh sách ${items.length} mục` : "Không copy được vào clipboard",
+        ),
+      );
+    },
+    [bucketName, dispatch],
+  );
+
   const doPaste = useCallback(
     async (intoFolder?: string) => {
       const cb = getClipboard();
@@ -281,7 +322,10 @@ const ObjectContextMenu = ({
       }
       const mod = e.ctrlKey || e.metaKey;
       const k = e.key.toLowerCase();
-      if (mod && k === "c" && selected.length) {
+      if (mod && e.shiftKey && k === "c" && selected.length) {
+        e.preventDefault();
+        doCopyList(selected);
+      } else if (mod && k === "c" && selected.length) {
         e.preventDefault();
         doCopyCut("copy", selected);
       } else if (mod && k === "x" && selected.length) {
@@ -308,7 +352,7 @@ const ObjectContextMenu = ({
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [dialogOpen, selected, doCopyCut, doPaste, doUndo, doTrash]);
+  }, [dialogOpen, selected, doCopyCut, doCopyList, doPaste, doUndo, doTrash]);
 
   useEffect(() => {
     if (!menu) {
@@ -472,6 +516,11 @@ const ObjectContextMenu = ({
       });
       entries.push({ label: "Cắt", hint: "Ctrl+X", sep: true, act: () => doCopyCut("move", items) });
       entries.push({ label: "Sao chép", hint: "Ctrl+C", act: () => doCopyCut("copy", items) });
+      entries.push({
+        label: "Copy danh sách file",
+        hint: "Ctrl+Shift+C",
+        act: () => doCopyList(items),
+      });
     }
     const pasteInto = singleIsDir ? single : undefined;
     entries.push({

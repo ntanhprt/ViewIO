@@ -28,6 +28,7 @@ import PdfViewer from "./DocViewer/PdfViewer";
 import ImageViewer from "./DocViewer/ImageViewer";
 import TextViewer from "./DocViewer/TextViewer";
 import TableViewer from "./DocViewer/TableViewer";
+import ExcelViewer from "./DocViewer/ExcelViewer";
 import DocxViewer from "./DocViewer/DocxViewer";
 import OfficeViewer from "./DocViewer/OfficeViewer";
 import HtmlViewer from "./DocViewer/HtmlViewer";
@@ -315,7 +316,14 @@ const PreviewFile = ({ bucketName, actualInfo, onResolved, nav }: IPreviewFilePr
           </svg>
         </button>
       )}
-      {objectType === "pdf" && <PdfViewer file={path} onDownload={download} />}
+      {objectType === "pdf" && (
+        <PdfViewer
+          file={path}
+          onDownload={download}
+          bucket={bucketName}
+          objectKey={objectName}
+        />
+      )}
       {objectType === "image" && (
         <ImageViewer
           src={path}
@@ -370,7 +378,14 @@ const PreviewFile = ({ bucketName, actualInfo, onResolved, nav }: IPreviewFilePr
         <TableViewer path={path} kind="csv" onDownload={download} />
       )}
       {objectType === "excel" && (
-        <TableViewer path={path} kind="excel" onDownload={download} />
+        <ExcelViewer
+          bucket={bucketName}
+          objectKey={objectName}
+          latest={(actualInfo as any)?.is_latest !== false}
+          path={path}
+          fileName={fileName}
+          onDownload={download}
+        />
       )}
       {objectType === "docx" && <DocxViewer path={path} onDownload={download} />}
       {objectType === "office" && (
@@ -378,6 +393,8 @@ const PreviewFile = ({ bucketName, actualInfo, onResolved, nav }: IPreviewFilePr
           path={path}
           fileName={fileName}
           size={size}
+          bucket={bucketName}
+          objectKey={objectName}
           onDownload={download}
         />
       )}

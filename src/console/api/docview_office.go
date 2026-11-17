@@ -276,11 +276,26 @@ func officeEditor(w http.ResponseWriter, r *http.Request, c officeConfig) {
 	if display == "" {
 		display = uid
 	}
-	tok := jwtSign(c.secret, map[string]interface{}{
+	// mode=view: "xem" nhưng dùng đủ công cụ như Excel/Word (kéo giãn cột, bỏ cố định hàng/cột, lọc, xuống dòng...).
+	// Phiên này là bản tạm: khóa tài liệu riêng (không chung phiên với người đang sửa) và KHÔNG ghi gì về kho.
+	viewOnly := r.URL.Query().Get("mode") == "view"
+	claimsMap := map[string]interface{}{
 		"b": bucket, "k": key, "e": strings.Trim(st.ETag, "\""), "s": sess, "u": uid,
 		"exp": time.Now().Add(24 * time.Hour).Unix(),
-	})
-	dk := officeDocKey(bucket, key, st.ETag)
+	}
+	if viewOnly {
+		claimsMap["ro"] = true
+	}
+	tok := jwtSign(c.secret, claimsMap)
+	var dk string
+	if viewOnly {
+		vb := make([]byte, 12)
+		_, _ = rand.Read(vb)
+		dk = "v" + hex.EncodeToString(vb)
+	} else {
+		dk = officeDocKey(bucket, key, st.ETag)
+	}
+	editMode := "edit"
 	cfg := map[string]interface{}{
 		"documentType": docType,
 		"width":        "100%",
@@ -297,10 +312,10 @@ func officeEditor(w http.ResponseWriter, r *http.Request, c officeConfig) {
 		"editorConfig": map[string]interface{}{
 			"callbackUrl": c.callback + "/docview/office/callback?t=" + url.QueryEscape(tok),
 			"lang":        "vi",
-			"mode":        "edit",
+			"mode":        editMode,
 			"user":        map[string]interface{}{"id": uid + "|" + who, "name": display},
 			"customization": map[string]interface{}{
-				"autosave": true, "forcesave": true, "compactHeader": true, "uiTheme": "default-light",
+				"autosave": !viewOnly, "forcesave": !viewOnly, "compactHeader": true, "uiTheme": "default-light",
 				"spellcheck": false, // tắt gạch đỏ kiểm tra chính tả (không có từ điển tiếng Việt)
 			},
 		},
@@ -432,6 +447,10 @@ func officeCallback(w http.ResponseWriter, r *http.Request, c officeConfig) {
 		pb, _ := json.Marshal(p)
 		body = officeCallbackBody{}
 		_ = json.Unmarshal(pb, &body)
+	}
+	if ro, _ := claims["ro"].(bool); ro { // phiên xem tạm: bỏ qua mọi thay đổi, không ghi về kho
+		reply(0)
+		return
 	}
 	cl, bucket, key, etag0, err := officePrincipal(claims, r)
 	if err != nil {

@@ -145,7 +145,11 @@ interface ICardProps {
   selected: boolean;
   active: boolean;
   onToggle: (name: string, checked: boolean) => void;
-  onClickItem: (item: BucketObjectItem, detail: number) => void;
+  onClickItem: (
+    item: BucketObjectItem,
+    detail: number,
+    additive: boolean,
+  ) => void;
 }
 
 const Card = memo(
@@ -182,7 +186,7 @@ const Card = memo(
         style={{ width }}
         title={`${base}\n${meta}`}
         data-vt-name={item.name}
-        onClick={(e) => onClickItem(item, e.detail)}
+        onClick={(e) => onClickItem(item, e.detail, e.ctrlKey || e.metaKey)}
       >
         <input
           type="checkbox"
@@ -231,7 +235,11 @@ interface IRowData {
   selectedSet: Set<string>;
   activeName: string | null;
   onToggle: (name: string, checked: boolean) => void;
-  onClickItem: (item: BucketObjectItem, detail: number) => void;
+  onClickItem: (
+    item: BucketObjectItem,
+    detail: number,
+    additive: boolean,
+  ) => void;
 }
 
 // Phải là component cố định (không tạo lại mỗi lần render) để React không gỡ/dựng lại cả lưới
@@ -274,6 +282,7 @@ interface IThumbnailGridProps {
   onToggle: (name: string, checked: boolean) => void;
   onOpen: (item: BucketObjectItem) => void;
   onPreview: (item: BucketObjectItem) => void;
+  onSelectOnly: (item: BucketObjectItem, additive: boolean) => void;
 }
 
 const ThumbnailGrid = ({
@@ -288,6 +297,7 @@ const ThumbnailGrid = ({
   onToggle,
   onOpen,
   onPreview,
+  onSelectOnly,
 }: IThumbnailGridProps) => {
   const wrapRef = useRef<HTMLDivElement | null>(null);
   const [box, setBox] = useState({ w: 800, h: 480 });
@@ -330,10 +340,16 @@ const ThumbnailGrid = ({
   const rowCount = Math.ceil(items.length / perRow);
   const selectedSet = new Set(selected);
 
-  const handleClick = (item: BucketObjectItem, detail: number) => {
-    if (detail <= 1) {
-      onOpen(item);
+  // Click = chọn, double-click = mở/xem (như Windows).
+  const handleClick = (
+    item: BucketObjectItem,
+    detail: number,
+    additive: boolean,
+  ) => {
+    if (detail > 1) {
+      return;
     }
+    onSelectOnly(item, additive);
   };
 
   const handleMouseDown = (e: React.MouseEvent<HTMLDivElement>) => {
@@ -349,11 +365,9 @@ const ThumbnailGrid = ({
       Math.hypot(e.clientX - last.x, e.clientY - last.y) < 8
     ) {
       lastDown.current = null;
-      if (
-        last.item &&
-        !last.item.name.endsWith("/") &&
-        !last.item.delete_flag
-      ) {
+      if (last.item && last.item.name.endsWith("/")) {
+        onOpen(last.item);
+      } else if (last.item && !last.item.delete_flag) {
         onPreview(last.item);
       }
       return;

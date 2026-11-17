@@ -1,0 +1,72 @@
+/* ViewIO: danh sách gọn — màu xám trong suốt để hợp cả nền sáng lẫn tối */
+.cl-wrap {
+  width: 100%;
+  overflow-x: auto;
+  overflow-y: hidden;
+}
+.cl-grid {
+  display: grid;
+  grid-auto-flow: column;
+  /* như Windows Explorer (List): mỗi cột rộng vừa đủ tên dài nhất của cột đó, không cắt tên */
+  column-gap: 12px;
+  padding: 4px;
+  box-sizing: border-box;
+  width: max-content;
+}
+.cl-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 8px;
+  border-radius: 4px;
+  border: 1px solid transparent;
+  cursor: pointer;
+  user-select: none;
+  min-width: 120px;
+}
+.cl-item:hover {
+  background: rgba(128, 128, 128, 0.16);
+}
+.cl-item.cl-active {
+  border-color: rgba(37, 99, 235, 0.7);
+}
+.cl-item.cl-sel {
+  background: rgba(37, 99, 235, 0.22);
+  border-color: rgb(37, 99, 235);
+}
+.cl-icon {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+}
+.cl-icon svg {
+  width: 18px;
+  height: 18px;
+}
+.cl-name {
+  font-size: 13px;
+  white-space: nowrap;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.cl-item {
+  position: relative;
+}
+.cl-grip {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  right: -8px;
+  width: 9px;
+  cursor: col-resize;
+  z-index: 1;
+}
+.cl-grip:hover {
+  background: rgba(37, 99, 235, 0.5);
+}
+.cl-empty {
+  padding: 40px 10px;
+  text-align: center;
+  opacity: 0.7;
+}

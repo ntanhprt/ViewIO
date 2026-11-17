@@ -35,23 +35,30 @@ const OfficeEditorOverlay = ({
   }, []);
   return (
     <div className="vio-office">
-      <div className="vio-office-bar">
-        <b className="vio-office-title">{baseName(objectKey)}</b>
-        <span className="vio-office-hint">
-          {kind === "drawio"
-            ? "Tự động lưu khi sửa. Bấm “Đóng” khi xong."
-            : "Tự động lưu. Bấm “Đóng” khi xong, bản sửa được ghi về kho sau vài giây."}
-        </span>
-        <button type="button" className="vio-btn vio-primary" onClick={onClose}>
-          Đóng
-        </button>
-      </div>
       <iframe
         className="vio-office-frame"
         title={baseName(objectKey)}
         src={kind === "drawio" ? drawioEditorUrl(bucket, objectKey) : officeEditorUrl(bucket, objectKey)}
         allow="clipboard-read; clipboard-write; fullscreen"
       />
+      {/* Nút đóng nổi: thu gọn thành ✕, rê chuột vào thì hiện tên file + ghi chú tự lưu; bấm để đóng */}
+      <button
+        type="button"
+        className="vio-office-fab"
+        onClick={onClose}
+        aria-label={`Đóng ${baseName(objectKey)}`}
+      >
+        <span className="vio-office-fab-x">✕</span>
+        <span className="vio-office-fab-info">
+          <b>{baseName(objectKey)}</b>
+          <small>
+            {kind === "drawio"
+              ? "Tự động lưu khi sửa"
+              : "Tự động lưu, bản sửa ghi về kho sau vài giây"}
+          </small>
+        </span>
+        <span className="vio-office-fab-act">Đóng</span>
+      </button>
     </div>
   );
 };

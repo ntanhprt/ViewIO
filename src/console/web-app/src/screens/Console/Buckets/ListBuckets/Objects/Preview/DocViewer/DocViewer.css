@@ -611,6 +611,7 @@ a.dv-btn {
 .dv-root > :not(.dv-header):not(.dv-hot):not(.vio-office) {
   zoom: var(--dv-zoom, 1);
 }
+.dv-slot:empty { display: none; }
 .dv-grp {
   display: inline-flex;
   gap: 2px;
@@ -804,3 +805,31 @@ a.dv-btn {
 .dv-extract-hint { font-size: 12px; opacity: 0.85; word-break: break-word; }
 .dv-extract-help { cursor: help; color: rgb(37, 99, 235); }
 .dv-extract-actions { display: flex; justify-content: flex-end; gap: 8px; }
+
+/* Markdown: heading thu gọn / mở rộng */
+.dv-md .dv-fold {
+  cursor: pointer;
+  position: relative;
+  padding-left: 1.1em;
+  user-select: text;
+}
+.dv-md .dv-fold::before {
+  content: "▾";
+  position: absolute;
+  left: 0;
+  top: 0.1em;
+  font-size: 0.8em;
+  opacity: 0.55;
+  transition: transform 0.12s;
+}
+.dv-md .dv-fold:hover::before {
+  opacity: 1;
+}
+.dv-md .dv-fold-closed::before {
+  content: "▸";
+}
+.dv-md .dv-fold-closed::after {
+  content: " …";
+  opacity: 0.5;
+  font-weight: normal;
+}

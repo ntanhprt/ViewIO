@@ -19,7 +19,7 @@ import hljs from "highlight.js/lib/common";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { useFileData } from "./useFileData";
-import { Loading, Problem } from "./ViewerShell";
+import { HeaderActions, Loading, Problem } from "./ViewerShell";
 
 const TEXT_LIMIT = 2 * 1024 * 1024;
 const HIGHLIGHT_LIMIT = 600 * 1024;
@@ -76,6 +76,109 @@ const TextViewer = ({
   const [query, setQuery] = useState("");
   const [hit, setHit] = useState(0);
   const body = useRef<HTMLDivElement | null>(null);
+  // ---- Markdown: heading thu gọn / mở rộng ----
+  const md = useRef<HTMLDivElement | null>(null);
+  const closed = useRef<Set<number>>(new Set());
+  const [foldTick, setFoldTick] = useState(0); // ép render lại thanh nút khi đổi trạng thái
+  const [foldInfo, setFoldInfo] = useState({ total: 0, shut: 0 });
+  const applyFold = () => {
+    const root = md.current;
+    if (!root) {
+      return;
+    }
+    let k = -1;
+    let hideLevel = 0; // >0: đang ẩn mọi thứ dưới heading cấp này
+    let shut = 0;
+    const kids = Array.from(root.children) as HTMLElement[];
+    // heading nào có nội dung phía sau thì mới gập được
+    const hasBody = new Map<number, boolean>();
+    {
+      let idx = -1;
+      let cur = -1;
+      let lvl = 0;
+      kids.forEach((el) => {
+        const m = /^H([1-6])$/.exec(el.tagName);
+        if (m) {
+          if (cur >= 0 && !hasBody.has(cur) && Number(m[1]) > lvl) {
+            hasBody.set(cur, true);
+          }
+          if (cur >= 0 && !hasBody.has(cur)) {
+            hasBody.set(cur, false);
+          }
+          idx++;
+          cur = idx;
+          lvl = Number(m[1]);
+        } else if (cur >= 0) {
+          hasBody.set(cur, true);
+        }
+      });
+      if (cur >= 0 && !hasBody.has(cur)) {
+        hasBody.set(cur, false);
+      }
+    }
+    kids.forEach((el) => {
+      const m = /^H([1-6])$/.exec(el.tagName);
+      if (m) {
+        k++;
+        const lvl = Number(m[1]);
+        if (hideLevel && lvl > hideLevel) {
+          el.style.display = "none";
+        } else {
+          hideLevel = 0;
+          el.style.display = "";
+        }
+        const foldable = !!hasBody.get(k);
+        el.classList.toggle("dv-fold", foldable);
+        const isClosed = foldable && closed.current.has(k);
+        el.classList.toggle("dv-fold-closed", isClosed);
+        el.dataset.fold = String(k);
+        if (isClosed) {
+          shut++;
+          if (!hideLevel) {
+            hideLevel = lvl;
+          }
+        }
+      } else {
+        el.style.display = hideLevel ? "none" : "";
+      }
+    });
+    setFoldInfo((o) => (o.total === k + 1 && o.shut === shut ? o : { total: k + 1, shut }));
+  };
+  useEffect(() => {
+    closed.current = new Set();
+    applyFold();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [text, source]);
+  useEffect(() => {
+    applyFold();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [foldTick]);
+  const toggleFold = (k: number) => {
+    if (closed.current.has(k)) {
+      closed.current.delete(k);
+    } else {
+      closed.current.add(k);
+    }
+    setFoldTick((n) => n + 1);
+  };
+  // gập tới cấp n: mọi heading cấp >= n đều đóng (n=0: mở hết)
+  const foldToLevel = (n: number) => {
+    const next = new Set<number>();
+    if (n > 0 && md.current) {
+      let k = -1;
+      Array.from(md.current.children).forEach((el) => {
+        const m = /^H([1-6])$/.exec(el.tagName);
+        if (m) {
+          k++;
+          if (Number(m[1]) >= n) {
+            next.add(k);
+          }
+        }
+      });
+    }
+    closed.current = next;
+    setFoldTick((n2) => n2 + 1);
+  };
 
   const ext = (fileName.split(".").pop() || "").toLowerCase();
   const isJson = ext === "json";
@@ -161,9 +264,8 @@ const TextViewer = ({
 
   return (
     <div style={{ display: "flex", flexDirection: "column", flex: 1, minWidth: 0 }}>
-      <div className="dv-toolbar">
-        {markdown ? (
-          <React.Fragment>
+      {markdown ? (
+        <HeaderActions>
             <button
               className={`dv-btn ${!source ? "dv-active" : ""}`}
               onClick={() => setSource(false)}
@@ -176,11 +278,45 @@ const TextViewer = ({
             >
               Mã nguồn
             </button>
-            <span className="dv-sep" />
-          </React.Fragment>
+            {!source && foldInfo.total > 0 ? (
+              <React.Fragment>
+                <button
+                  className="dv-btn"
+                  title="Mở rộng tất cả các mục"
+                  onClick={() => foldToLevel(0)}
+                  disabled={foldInfo.shut === 0}
+                >
+                  ⊞<span className="dv-lbl"> Mở hết</span>
+                </button>
+                <button
+                  className="dv-btn"
+                  title="Thu gọn tất cả các mục (chỉ còn tiêu đề)"
+                  onClick={() => foldToLevel(1)}
+                >
+                  ⊟<span className="dv-lbl"> Thu hết</span>
+                </button>
+                <select
+                  className="dv-input"
+                  title="Chỉ hiện các mục tới cấp heading này"
+                  value=""
+                  onChange={(e) => foldToLevel(Number(e.target.value))}
+                  style={{ width: "auto" }}
+                >
+                  <option value="" disabled>
+                    Cấp…
+                  </option>
+                  {[1, 2, 3, 4].map((n) => (
+                    <option key={n} value={n + 1}>
+                      Hiện tới H{n}
+                    </option>
+                  ))}
+                </select>
+              </React.Fragment>
+            ) : null}
+          </HeaderActions>
         ) : null}
-        {source ? (
-          <React.Fragment>
+      {source ? (
+        <div className="dv-toolbar">
             <button
               className={`dv-btn ${wrap ? "dv-active" : ""}`}
               onClick={() => setWrap(!wrap)}
@@ -205,9 +341,8 @@ const TextViewer = ({
             <span className="dv-info" style={{ marginLeft: "auto" }}>
               {lines.length.toLocaleString()} dòng
             </span>
-          </React.Fragment>
-        ) : null}
-      </div>
+        </div>
+      ) : null}
       {truncated ? (
         <div className="dv-notice">
           File lớn, chỉ hiển thị 2 MB đầu tiên. Tải xuống để xem đầy đủ.
@@ -215,7 +350,21 @@ const TextViewer = ({
       ) : null}
       <div className="dv-scroll" ref={body}>
         {markdown && !source ? (
-          <div className="dv-md">
+          <div
+            className="dv-md"
+            ref={md}
+            onClick={(e) => {
+              const h = (e.target as HTMLElement).closest("[data-fold]") as HTMLElement | null;
+              if (
+                h &&
+                h.classList.contains("dv-fold") &&
+                !(e.target as HTMLElement).closest("a") &&
+                !window.getSelection()?.toString()
+              ) {
+                toggleFold(Number(h.dataset.fold));
+              }
+            }}
+          >
             <ReactMarkdown remarkPlugins={[remarkGfm]}>{text}</ReactMarkdown>
           </div>
         ) : (

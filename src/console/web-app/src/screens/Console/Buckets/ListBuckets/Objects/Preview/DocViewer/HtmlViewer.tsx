@@ -16,6 +16,7 @@
 
 import React, { useState } from "react";
 import TextViewer from "./TextViewer";
+import { HeaderActions } from "./ViewerShell";
 
 interface IHtmlViewerProps {
   bucketName: string;
@@ -60,7 +61,7 @@ const HtmlViewer = ({
         minHeight: 0,
       }}
     >
-      <div className="dv-toolbar">
+      <HeaderActions>
         <button
           className={`dv-btn ${!source ? "dv-active" : ""}`}
           onClick={() => setSource(false)}
@@ -73,7 +74,6 @@ const HtmlViewer = ({
         >
           Mã nguồn
         </button>
-        <span className="dv-sep" />
         <a
           className="dv-btn"
           href={pageUrl}
@@ -83,7 +83,8 @@ const HtmlViewer = ({
         >
           ↗ Tab mới
         </a>
-        <span className="dv-sep" />
+      </HeaderActions>
+      <div className="dv-toolbar">
         <span
           className="dv-info"
           style={{ textAlign: "left", flex: "0 1 auto", minWidth: 0 }}

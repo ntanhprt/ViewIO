@@ -14,10 +14,26 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-import React, { Fragment, ReactNode, useEffect, useRef, useState } from "react";
+import React, {
+  createContext,
+  Fragment,
+  ReactNode,
+  useContext,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
+import { createPortal } from "react-dom";
 import { useSelector } from "react-redux";
 import { AppState } from "../../../../../../../store";
 import "./DocViewer.css";
+
+// Chỗ trên thanh tiêu đề để viewer con đặt nút riêng (vd Hiển thị / Mã nguồn) thay vì thêm thanh nút thứ hai
+const HeaderSlot = createContext<HTMLElement | null>(null);
+export const HeaderActions = ({ children }: { children: ReactNode }) => {
+  const slot = useContext(HeaderSlot);
+  return slot ? createPortal(children, slot) : null;
+};
 
 interface IViewerShellProps {
   title: string;
@@ -87,6 +103,7 @@ export const ViewerShell = ({
   const zoomBy = (d: number) =>
     patchOpt({ zoom: Math.round(Math.min(2, Math.max(0.7, opt.zoom + d)) * 10) / 10 });
   const hideTimer = useRef<number>();
+  const [slot, setSlot] = useState<HTMLElement | null>(null);
 
   // Ctrl + lăn chuột = phóng to/thu nhỏ nội dung (thay vì zoom cả trình duyệt); Shift + lăn = cuộn ngang khi trang rộng hơn khung.
   // Dùng listener gốc (không passive) vì React không cho preventDefault trên wheel.
@@ -221,6 +238,7 @@ export const ViewerShell = ({
           {subtitle ? <span>{subtitle}</span> : null}
         </div>
         {badge ? <span className="dv-badge">{badge}</span> : null}
+        <span className="dv-grp dv-slot" ref={setSlot} />
         <span className="dv-grp" title="Cỡ nội dung">
           <button className="dv-btn" onClick={() => zoomBy(-0.1)} title="Thu nhỏ nội dung">
             A−
@@ -260,7 +278,7 @@ export const ViewerShell = ({
           ✕
         </button>
       </div>
-      {children}
+      <HeaderSlot.Provider value={slot}>{children}</HeaderSlot.Provider>
     </div>
   );
 };

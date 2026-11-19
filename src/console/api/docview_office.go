@@ -185,6 +185,19 @@ func officeKind(ext string) (docType string, editable bool) {
 	return "", false
 }
 
+// officeViewKind: các định dạng chỉ MỞ XEM (mode=view, không ghi lại) bằng ONLYOFFICE.
+func officeViewKind(ext string) string {
+	switch ext {
+	case "doc", "docm", "dot", "dotx", "dotm", "rtf", "txt", "epub", "fb2", "odt", "ott", "wps":
+		return "word"
+	case "xls", "xlsm", "xlsb", "xlt", "xltx", "xltm", "ods", "ots", "csv", "et":
+		return "cell"
+	case "ppt", "pps", "ppsx", "pptm", "pot", "potx", "potm", "odp", "otp", "dps":
+		return "slide"
+	}
+	return ""
+}
+
 // officeBase: địa chỉ Document Server cho TRÌNH DUYỆT của yêu cầu này. Vào qua tên miền công khai thì dùng URL công khai;
 // vào qua IP/LAN (http) thì dùng cùng host với cổng riêng, tránh lỗi mixed-content.
 func officeBase(r *http.Request, c officeConfig) string {
@@ -249,6 +262,11 @@ func officeEditor(w http.ResponseWriter, r *http.Request, c officeConfig) {
 	bucket, key := r.URL.Query().Get("bucket"), strings.TrimLeft(r.URL.Query().Get("key"), "/")
 	ext := strings.ToLower(strings.TrimPrefix(path.Ext(key), "."))
 	docType, editable := officeKind(ext)
+	if !editable && r.URL.Query().Get("mode") == "view" {
+		if dt := officeViewKind(ext); dt != "" {
+			docType, editable = dt, true
+		}
+	}
 	if bucket == "" || key == "" || !editable {
 		http.Error(w, "định dạng này không sửa được bằng ONLYOFFICE", http.StatusBadRequest)
 		return

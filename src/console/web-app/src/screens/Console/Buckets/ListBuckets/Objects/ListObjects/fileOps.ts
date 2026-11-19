@@ -344,6 +344,16 @@ export const OFFICE_EDIT_EXT = ["docx", "xlsx", "pptx", "odt", "ods", "odp"];
 export const canOfficeEdit = (name: string) =>
   OFFICE_EDIT_EXT.includes((name.split(".").pop() || "").toLowerCase());
 
+// Định dạng ONLYOFFICE mở xem được (chỉ xem, không ghi lại)
+export const OFFICE_VIEW_EXT = [
+  ...OFFICE_EDIT_EXT,
+  "doc", "docm", "dot", "dotx", "dotm", "rtf", "epub", "fb2", "ott", "wps",
+  "xls", "xlsm", "xlsb", "xlt", "xltx", "xltm", "ots", "et",
+  "ppt", "pps", "ppsx", "pptm", "pot", "potx", "potm", "otp", "dps",
+];
+export const canOfficeView = (name: string) =>
+  OFFICE_VIEW_EXT.includes((name.split(".").pop() || "").toLowerCase());
+
 let officeFlag: Promise<boolean> | null = null;
 export const officeEnabled = (): Promise<boolean> => {
   if (!officeFlag) {

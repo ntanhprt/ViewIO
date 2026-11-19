@@ -35,7 +35,7 @@ import HtmlViewer from "./DocViewer/HtmlViewer";
 import DrawioViewer from "./DocViewer/DrawioViewer";
 import TextEditor from "./DocViewer/TextEditor";
 import OfficeEditorOverlay from "../ListObjects/OfficeEditorOverlay";
-import { canOfficeEdit, convertOffice, drawioEnabled, info as fsInfo, isLegacyOffice, officeEnabled } from "../ListObjects/fileOps";
+import { canOfficeView, officeEditorUrl, canOfficeEdit, convertOffice, drawioEnabled, info as fsInfo, isLegacyOffice, officeEnabled } from "../ListObjects/fileOps";
 import { useSelector } from "react-redux";
 import { AppState } from "../../../../../../store";
 
@@ -200,6 +200,13 @@ const PreviewFile = ({ bucketName, actualInfo, onResolved, nav }: IPreviewFilePr
       }
     }
   };
+
+  // Word/PowerPoint/OpenDocument: xem bằng chính ONLYOFFICE (chế độ chỉ xem) để giống hệt khi sửa
+  const onlyofficeView =
+    officeOn &&
+    ["docx", "excel", "office"].includes(objectType) &&
+    canOfficeView(objectName) &&
+    (actualInfo as any)?.is_latest !== false;
 
   if (drawioEditing) {
     return (
@@ -377,7 +384,7 @@ const PreviewFile = ({ bucketName, actualInfo, onResolved, nav }: IPreviewFilePr
       {objectType === "csv" && (
         <TableViewer path={path} kind="csv" onDownload={download} />
       )}
-      {objectType === "excel" && (
+      {!onlyofficeView && objectType === "excel" && (
         <ExcelViewer
           bucket={bucketName}
           objectKey={objectName}
@@ -387,8 +394,18 @@ const PreviewFile = ({ bucketName, actualInfo, onResolved, nav }: IPreviewFilePr
           onDownload={download}
         />
       )}
-      {objectType === "docx" && <DocxViewer path={path} onDownload={download} />}
-      {objectType === "office" && (
+      {onlyofficeView && (
+        <iframe
+          title={fileName || objectName}
+          src={`${officeEditorUrl(bucketName, objectName)}&mode=view`}
+          style={{ flex: 1, width: "100%", border: 0, minHeight: 0 }}
+          allow="clipboard-read; clipboard-write; fullscreen"
+        />
+      )}
+      {!onlyofficeView && objectType === "docx" && (
+        <DocxViewer path={path} onDownload={download} />
+      )}
+      {!onlyofficeView && objectType === "office" && (
         <OfficeViewer
           path={path}
           fileName={fileName}
